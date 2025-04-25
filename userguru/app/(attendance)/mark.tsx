@@ -1,7 +1,7 @@
 // app/(attendance)/mark.tsx
 import React, { useState } from "react";
 import { View, Text, Button, Alert, StyleSheet, ActivityIndicator } from "react-native";
-import { addDoc, collection, doc, getDoc, Timestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { useAuthContext } from "../../context/AuthContext";
 import * as Location from "expo-location";
@@ -15,6 +15,40 @@ export default function MarkAttendance() {
 
     try {
       setLoading(true);
+
+      // Get the current time
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      // Check if the current time is within office hours (10 AM to 7 PM)
+      if (currentHour < 10 || currentHour > 19) {
+        Alert.alert("Office Hours Over", "You can only mark attendance between 10 AM and 7 PM.");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch today's attendance records for the user
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0); // Start of the day
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999); // End of the day
+
+      const attendanceQuery = query(
+        collection(db, "attendance"),
+        where("uid", "==", user.uid),
+        where("timestamp", ">=", Timestamp.fromDate(todayStart)),
+        where("timestamp", "<=", Timestamp.fromDate(todayEnd))
+      );
+
+      const attendanceSnapshot = await getDocs(attendanceQuery);
+      const attendanceCount = attendanceSnapshot.size;
+
+      // Check if the user has already marked attendance 3 times today
+      if (attendanceCount >= 3) {
+        Alert.alert("Limit Reached", "You can only mark attendance 3 times a day.");
+        setLoading(false);
+        return;
+      }
 
       // Request location permissions
       const { status } = await Location.requestForegroundPermissionsAsync();

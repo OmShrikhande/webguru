@@ -2,10 +2,22 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "../../context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "../../lib/firebase";
+import LocationDetcher from "../../components/Locationdetcher"; // Corrected import path
 
 export default function Dashboard() {
-  const { user, logout } = useAuthContext();
+  const { user } = useAuthContext();
   const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Sign out the user
+      router.replace("/(auth)/login"); // Navigate back to the login screen
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -27,11 +39,20 @@ export default function Dashboard() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, styles.logoutButton]}
-        onPress={logout}
+        style={[styles.button, styles.newPageButton]}
+        onPress={() => router.push("/(dashboard)/newPage")}
       >
-        <Text style={styles.logoutButtonText}>Logout</Text>
+        <Text style={styles.buttonText}>view Location</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, styles.logoutButton]}
+        onPress={handleLogout}
+      >
+        <Text style={styles.logoutButtonText}>Logout</Text> {/* Fixed Text wrapping */}
+      </TouchableOpacity>
+
+      <LocationDetcher /> {/* Ensure this is called to start location tracking */}
     </View>
   );
 }
@@ -67,6 +88,9 @@ const styles = StyleSheet.create({
   },
   historyButton: {
     backgroundColor: "#2196F3",
+  },
+  newPageButton: {
+    backgroundColor: "#FFC107",
   },
   logoutButton: {
     backgroundColor: "#F44336",

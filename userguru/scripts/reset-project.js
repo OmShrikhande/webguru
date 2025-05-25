@@ -18,6 +18,8 @@ const exampleDirPath = path.join(root, exampleDir);
 
 const indexContent = `import { Text, View } from "react-native";
 
+
+
 export default function Index() {
   return (
     <View

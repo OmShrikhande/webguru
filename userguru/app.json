@@ -13,6 +13,9 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to track your movements.",
         "NSLocationAlwaysUsageDescription": "This app uses your location to track your movements in the background."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyB-R6ylNbXSAA_4E5AxKQfcYWiElba_PIc"
       }
     },
     "android": {
@@ -25,7 +28,13 @@
         "ACCESS_COARSE_LOCATION",
         "FOREGROUND_SERVICE",
         "ACCESS_BACKGROUND_LOCATION"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB-R6ylNbXSAA_4E5AxKQfcYWiElba_PIc"
+        }
+      },
+      "package": "com.omshrikhande.userguru"
     },
     "web": {
       "bundler": "metro",
@@ -46,6 +55,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "12707ea6-c90e-49e5-bd44-794ec9da47f4"
+      }
     }
   }
 }

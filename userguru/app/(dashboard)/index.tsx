@@ -39,10 +39,10 @@ export default function Dashboard() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, styles.newPageButton]}
-        onPress={() => router.push("/(dashboard)/newPage")}
+        style={[styles.button, styles.mapButton]}
+        onPress={() => router.push("/(dashboard)/mapPage")}
       >
-        <Text style={styles.buttonText}>view Location</Text>
+        <Text style={styles.buttonText}>View Map</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -91,6 +91,9 @@ const styles = StyleSheet.create({
   },
   newPageButton: {
     backgroundColor: "#FFC107",
+  },
+  mapButton: {
+    backgroundColor: "#FF5722",
   },
   logoutButton: {
     backgroundColor: "#F44336",

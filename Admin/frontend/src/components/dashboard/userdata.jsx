@@ -36,6 +36,7 @@ const UserData = () => {
       mobile: user.mobile,
       department: user.department,
       is_active: user.is_active,
+      password: user.password, // Include password if needed
     });
   };
 

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const bcrypt = require('bcrypt');
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -12,9 +13,11 @@ exports.createUser = async (req, res) => {
       is_active, 
       department, 
       adhar, 
-      pan 
+      pan, 
+      password
     } = req.body;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
     // Create new user
     const newUser = new User({
       name,
@@ -25,7 +28,8 @@ exports.createUser = async (req, res) => {
       is_active,
       department,
       adhar,
-      pan
+      pan,
+      password: hashedPassword // Ensure password is hashed in the User model pre-save hook
     });
 
     await newUser.save();
@@ -99,7 +103,8 @@ exports.updateUser = async (req, res) => {
       is_active, 
       department, 
       adhar, 
-      pan 
+      pan ,
+      password
     } = req.body;
 
     // Set updated_at to current time

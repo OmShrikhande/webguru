@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './Dashboard.css'; // Assuming you have a CSS file for styling
+import './Dashboard.css';
+import Login from './Login';  
 import { useNavigate } from 'react-router-dom';
 import UserData from '../components/dashboard/userdata';
 
 const Dashboard = () => {
+  const [authorized, setAuthorized] = useState(true); // security flag
   const [users, setUsers] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,25 +25,33 @@ const Dashboard = () => {
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
-  // Fetch all users when component mounts
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  // Run on mount
+  // useEffect(() => {
+  //   const token = localStorage.getItem('token');
+  //   if (!token) {
+  //     navigate('/'); // Not logged in
+  //     return;
+  //   }
+
+  //   // Set authorized and fetch users
+  //   setAuthorized(true);
+  //   fetchUsers(token);
+  // }, []);
 
   // Fetch all users
-  const fetchUsers = async () => {
+  const fetchUsers = async (token) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:5000/api/admin/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data.users);
       setLoading(false);
     } catch (err) {
-      setError('Failed to fetch users');
-      setLoading(false);
       console.error('Error fetching users:', err);
+      setError('Failed to fetch users');
+      localStorage.removeItem('token'); // Logout user on failure
+      navigate('/Login');
     }
   };
 
@@ -60,12 +70,10 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError('');
-      
       const token = localStorage.getItem('token');
       await axios.post('http://localhost:5000/api/admin/users', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
       setSuccess('User added successfully');
       setFormData({
         name: '',
@@ -79,7 +87,7 @@ const Dashboard = () => {
         pan: ''
       });
       setShowForm(false);
-      fetchUsers(); // Refresh user list
+      fetchUsers(token);
       setLoading(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add user');
@@ -87,6 +95,9 @@ const Dashboard = () => {
       console.error('Error adding user:', err);
     }
   };
+
+  // 🔐 If not authorized, render nothing (or a loader)
+  if (!authorized) return null;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100">

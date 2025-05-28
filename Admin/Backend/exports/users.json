@@ -1,0 +1,17 @@
+[
+  {
+    "_id": "6836c6797e046b4bde8f9122",
+    "name": "Kuldeep Tiwari",
+    "email": "kdkuldeeptiwari26@gmail.com",
+    "mobile": "7058972300",
+    "address": "Plot No.37 Gorle layout Gopal Nagar, Nagpur-10",
+    "joiningDate": "2025-05-27T00:00:00.000Z",
+    "is_active": true,
+    "department": "EE",
+    "adhar": "1234556780987",
+    "pan": "sdfg654fv",
+    "created_at": "2025-05-28T08:16:57.310Z",
+    "updated_at": "2025-05-28T08:16:57.310Z",
+    "__v": 0
+  }
+]

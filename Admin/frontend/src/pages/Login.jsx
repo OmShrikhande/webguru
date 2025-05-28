@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Login.css';
-
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,7 +62,6 @@ const Login = () => {
     <div className="login-container">
       <ToastContainer position="top-center" />
       <div className="login-card">
-        <img src="./../../public/logo192.png" alt="App Logo" className="login-logo" />
         <h2>{!showForgot ? 'Admin Login' : 'Reset Password'}</h2>
         {!showForgot ? (
           <>

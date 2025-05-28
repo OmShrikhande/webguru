@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './Dashboard.css'; // Assuming you have a CSS file for styling
+
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);

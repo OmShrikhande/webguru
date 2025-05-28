@@ -26,18 +26,25 @@ exports.loginAdmin = async (req, res) => {
     const admin = await Admin.findOne({ email: normalizedEmail });
     console.log("Admin found:", admin);
 
-    if (!admin) return res.status(400).json({ message: 'Invalid credentials (email not found)' });
+    if (!admin) return res.status(400).json({ success: false, message: 'Invalid credentials (email not found)' });
 
     const isMatch = await bcrypt.compare(password, admin.password);
     console.log("Password match result:", isMatch);
 
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials (wrong password)' });
+    if (!isMatch) return res.status(400).json({ success: false, message: 'Invalid credentials (wrong password)' });
 
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, admin: { id: admin._id, email: admin.email } });
+    res.json({ 
+      success: true,
+      token, 
+      admin: { 
+        id: admin._id, 
+        email: admin.email 
+      } 
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 exports.resetPassword = async (req, res) => {

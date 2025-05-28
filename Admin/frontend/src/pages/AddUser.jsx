@@ -69,7 +69,7 @@ const AddUser = () => {
                 Name
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="name"
                 type="text"
                 name="name"
@@ -85,7 +85,7 @@ const AddUser = () => {
                 Email
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="email"
                 type="email"
                 name="email"
@@ -93,6 +93,8 @@ const AddUser = () => {
                 onChange={handleChange}
                 required
                 autoComplete="off"
+                pattern="^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$"
+                title="Please enter a valid email address."
               />
             </div>
             {/* Mobile */}
@@ -101,7 +103,7 @@ const AddUser = () => {
                 Mobile
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="mobile"
                 type="text"
                 name="mobile"
@@ -109,6 +111,9 @@ const AddUser = () => {
                 onChange={handleChange}
                 required
                 autoComplete="off"
+                pattern="^\d{10}$"
+                maxLength={10}
+                title="Mobile number must be exactly 10 digits."
               />
             </div>
             {/* Department */}
@@ -117,7 +122,7 @@ const AddUser = () => {
                 Department
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="department"
                 type="text"
                 name="department"
@@ -125,6 +130,8 @@ const AddUser = () => {
                 onChange={handleChange}
                 required
                 autoComplete="off"
+                pattern="^[A-Za-z ]{2,}$"
+                title="Department should contain only letters and spaces."
               />
             </div>
             {/* Adhar */}
@@ -133,7 +140,7 @@ const AddUser = () => {
                 Adhar Number
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="adhar"
                 type="text"
                 name="adhar"
@@ -141,6 +148,9 @@ const AddUser = () => {
                 onChange={handleChange}
                 required
                 autoComplete="off"
+                pattern="^\d{16}$"
+                maxLength={12}
+                title="Adhar number must be exactly 16 digits."
               />
             </div>
             {/* PAN */}
@@ -149,7 +159,7 @@ const AddUser = () => {
                 PAN Number
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="pan"
                 type="text"
                 name="pan"
@@ -157,6 +167,9 @@ const AddUser = () => {
                 onChange={handleChange}
                 required
                 autoComplete="off"
+                pattern="^[A-Z]{5}[0-9]{4}[A-Z]{1}$"
+                title="PAN should be in format: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)."
+                style={{ textTransform: 'uppercase' }}
               />
             </div>
             {/* Joining Date */}
@@ -165,7 +178,7 @@ const AddUser = () => {
                 Joining Date
               </label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm text-gray-700"
                 id="joiningDate"
                 type="date"
                 name="joiningDate"
@@ -180,7 +193,7 @@ const AddUser = () => {
                 Address
               </label>
               <textarea
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 shadow-sm resize-none text-gray-700"
                 id="address"
                 name="address"
                 value={formData.address}

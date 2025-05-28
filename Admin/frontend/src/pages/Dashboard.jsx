@@ -94,7 +94,7 @@ const Dashboard = () => {
         <h2 className="text-3xl font-bold text-indigo-800">Admin Dashboard</h2>
         <button
           onClick={() => navigate('/adduser')}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow transition-all duration-200"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow transition-all duration-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
         >
           Add User
         </button>

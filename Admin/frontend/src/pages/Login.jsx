@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Login.css';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +13,40 @@ const Login = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
+
+useEffect(() => {
+  const container = document.querySelector('.login-container');
+  const boxes = [];
+
+  for (let i = 0; i < 20; i++) {
+    const box = document.createElement('div');
+    box.classList.add('floating-box');
+    const size = Math.floor(Math.random() * 40) + 10;
+    box.style.width = `${size}px`;
+    box.style.height = `${size}px`;
+    box.style.top = `${Math.random() * 100}%`;
+    box.style.left = `${Math.random() * 100}%`;
+    box.style.animationDuration = `${5 + Math.random() * 10}s`;
+    box.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+    container.appendChild(box);
+    boxes.push(box);
+  }
+
+  const handleMouseMove = (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 20;
+    const y = (e.clientY / window.innerHeight - 0.5) * 20;
+    boxes.forEach((box, i) => {
+      box.style.transform = `translate(${x * (i % 5)}px, ${y * (i % 5)}px)`;
+    });
+  };
+
+  window.addEventListener('mousemove', handleMouseMove);
+  return () => {
+    window.removeEventListener('mousemove', handleMouseMove);
+    boxes.forEach(box => box.remove());
+  };
+}, []);
+
 
   const loginHandler = async (e) => {
     e.preventDefault();

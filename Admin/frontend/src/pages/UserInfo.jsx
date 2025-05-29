@@ -6,6 +6,8 @@ import {
 import { MdBadge, MdFingerprint } from 'react-icons/md';
 import { AiOutlineRollback, AiOutlineReload } from 'react-icons/ai';
 import UserMap from '../components/userInfo/UserMap';
+import AnimatedBackground from '../components/userInfo/AnimatedBackground';
+// import UserAttenednce from './../components/userInfo/UserAttenednce';
 
 
 
@@ -40,6 +42,8 @@ const UserInfo = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  // const [attendance, setAttendance] = useState([]);
+  // const [attendanceLoading, setAttendanceLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -62,7 +66,27 @@ const UserInfo = () => {
       }
     };
 
+    // Fetch attendance
+    // const fetchAttendance = async () => {
+    //   try {
+    //     const res = await fetch(`http://localhost:5000/api/admin/attendance/${userId}`, {
+    //       headers: { Authorization: `Bearer ${token}` }
+    //     });
+    //     const data = await res.json();
+    //     if (data.success) {
+    //       setAttendance(data.attendance); // adjust key as per your backend response
+    //     } else {
+    //       setAttendance([]);
+    //     }
+    //   } catch (err) {
+    //     setAttendance([]);
+    //   } finally {
+    //     setAttendanceLoading(false);
+    //   }
+    // };
+
     fetchUser();
+    // fetchAttendance();
   }, [userId]);
 
   const handleResetPassword = () => {
@@ -98,7 +122,8 @@ const UserInfo = () => {
 
   return (
     <>
-    <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-700">
+    <AnimatedBackground />
+    <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-700 ">
       {/* Upper Section: Avatar/Name (Left) and Details (Right) */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 w-full max-w-5xl mb-8">
         <div className="flex flex-col md:flex-row gap-10">
@@ -153,6 +178,13 @@ const UserInfo = () => {
           <div className="rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-indigo-700 shadow-lg" style={{ height: 400, width: "100%" }}>
             <UserMap latitude={21.15806554667964} longitude={79.10086557313238} />
           </div>
+        </div>
+      </div>
+      {/* Attendance Section */}
+      <div className="w-full max-w-5xl mt-8">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
+          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Attendance</h3>
+          {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
         </div>
       </div>
     </div>

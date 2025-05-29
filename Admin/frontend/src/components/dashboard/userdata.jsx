@@ -93,23 +93,23 @@ const UserData = () => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded px-8 pt-6 pb-8">
-      <h3 className="text-xl font-bold mb-4 text-gray-700">Users</h3>
-      {loading && <p>Loading...</p>}
+    <div className="bg-gray-900/60 backdrop-blur-md shadow-xl rounded-xl px-8 pt-6 pb-8 border border-gray-700">
+      <h3 className="text-xl font-bold mb-4 text-indigo-100">Users</h3>
+      {loading && <p className="text-indigo-200">Loading...</p>}
       {users.length === 0 && !loading ? (
-        <p className='text-red-700'>No users found</p>
+        <p className='text-pink-400'>No users found</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white text-gray-700">
+          <table className="min-w-full bg-transparent text-indigo-100">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mobile</th>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Info</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Name</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Email</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Mobile</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Department</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Status</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Actions</th>
+                <th className="py-2 px-4 border-b border-gray-700 bg-gray-800/60 text-left text-xs font-semibold text-indigo-200 uppercase tracking-wider">Info</th>
               </tr>
             </thead>
             <tbody>

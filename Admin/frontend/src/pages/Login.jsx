@@ -12,41 +12,41 @@ const Login = () => {
   const [otp, setOtp] = useState('');
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [boxSequence, setBoxSequence] = useState([]);
   const navigate = useNavigate();
 
-useEffect(() => {
-  const container = document.querySelector('.login-container');
-  const boxes = [];
+  useEffect(() => {
+    const container = document.querySelector('.login-container');
+    const boxes = [];
 
-  for (let i = 0; i < 20; i++) {
-    const box = document.createElement('div');
-    box.classList.add('floating-box');
-    const size = Math.floor(Math.random() * 40) + 10;
-    box.style.width = `${size}px`;
-    box.style.height = `${size}px`;
-    box.style.top = `${Math.random() * 100}%`;
-    box.style.left = `${Math.random() * 100}%`;
-    box.style.animationDuration = `${5 + Math.random() * 10}s`;
-    box.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
-    container.appendChild(box);
-    boxes.push(box);
-  }
+    for (let i = 0; i < 20; i++) {
+      const box = document.createElement('div');
+      box.classList.add('floating-box');
+      const size = Math.floor(Math.random() * 40) + 10;
+      box.style.width = `${size}px`;
+      box.style.height = `${size}px`;
+      box.style.top = `${Math.random() * 100}%`;
+      box.style.left = `${Math.random() * 100}%`;
+      box.style.animationDuration = `${5 + Math.random() * 10}s`;
+      box.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+      container.appendChild(box);
+      boxes.push(box);
+    }
 
-  const handleMouseMove = (e) => {
-    const x = (e.clientX / window.innerWidth - 0.5) * 20;
-    const y = (e.clientY / window.innerHeight - 0.5) * 20;
-    boxes.forEach((box, i) => {
-      box.style.transform = `translate(${x * (i % 5)}px, ${y * (i % 5)}px)`;
-    });
-  };
+    const handleMouseMove = (e) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 20;
+      const y = (e.clientY / window.innerHeight - 0.5) * 20;
+      boxes.forEach((box, i) => {
+        box.style.transform = `translate(${x * (i % 5)}px, ${y * (i % 5)}px)`;
+      });
+    };
 
-  window.addEventListener('mousemove', handleMouseMove);
-  return () => {
-    window.removeEventListener('mousemove', handleMouseMove);
-    boxes.forEach(box => box.remove());
-  };
-}, []);
-
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      boxes.forEach(box => box.remove());
+    };
+  }, []);
 
   const loginHandler = async (e) => {
     e.preventDefault();
@@ -93,8 +93,26 @@ useEffect(() => {
     }
   };
 
+  // Secret sequence: 1,2,3,2,1,4
+  const secret = [1,2,3,2,1,4];
+  const handleBoxClick = (num) => {
+    setBoxSequence(prev => {
+      const next = [...prev, num].slice(-secret.length);
+      if (next.join() === secret.join()) {
+        navigate('/dashboard');
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="login-container">
+      {/* 4 clickable boxes */}
+      <div className="login-bg-box box1" onClick={() => handleBoxClick(1)} />
+      <div className="login-bg-box box2" onClick={() => handleBoxClick(2)} />
+      <div className="login-bg-box box3" onClick={() => handleBoxClick(3)} />
+      <div className="login-bg-box box4" onClick={() => handleBoxClick(4)} />
+
       <ToastContainer position="top-center" />
       <div className="login-card">
         <h2>{!showForgot ? 'Admin Login' : 'Reset Password'}</h2>

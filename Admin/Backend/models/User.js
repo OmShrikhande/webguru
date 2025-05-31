@@ -50,7 +50,18 @@ const UserSchema = new mongoose.Schema({
   updated_at: { 
     type: Date, 
     default: Date.now 
-  }
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [0, 0]
+    }
+  },
 });
 
 module.exports = mongoose.model('User', UserSchema);

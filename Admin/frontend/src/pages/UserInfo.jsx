@@ -7,43 +7,65 @@ import { MdBadge, MdFingerprint } from 'react-icons/md';
 import { AiOutlineRollback, AiOutlineReload } from 'react-icons/ai';
 import UserMap from '../components/userInfo/UserMap';
 import AnimatedBackground from '../components/userInfo/AnimatedBackground';
-// import UserAttenednce from './../components/userInfo/UserAttenednce';
-
-
 
 const defaultAnimalAvatars = [
-  'https://cdn-icons-png.flaticon.com/512/616/616408.png', // panda
-  'https://cdn-icons-png.flaticon.com/512/616/616430.png', // lion
-  'https://cdn-icons-png.flaticon.com/512/616/616408.png', // fox
-  'https://cdn-icons-png.flaticon.com/512/616/616418.png', // bear
-  'https://cdn-icons-png.flaticon.com/512/616/616426.png', // rabbit
-  'https://cdn-icons-png.flaticon.com/512/616/616410.png', // elephant
-  'https://cdn-icons-png.flaticon.com/512/616/616421.png', // tiger
-  'https://cdn-icons-png.flaticon.com/512/616/616423.png', // giraffe
-  'https://cdn-icons-png.flaticon.com/512/616/616425.png', // koala
-  'https://cdn-icons-png.flaticon.com/512/616/616429.png', // monkey
-  'https://cdn-icons-png.flaticon.com/512/616/616419.png', // zebra
-  'https://cdn-icons-png.flaticon.com/512/616/616427.png', // penguin
-  'https://cdn-icons-png.flaticon.com/512/616/616420.png', // dolphin
-  'https://cdn-icons-png.flaticon.com/512/616/616417.png', // whale
-  'https://cdn-icons-png.flaticon.com/512/616/616424.png', // owl
-  'https://cdn-icons-png.flaticon.com/512/616/616416.png', // hedgehog
-  'https://cdn-icons-png.flaticon.com/512/616/616422.png', // squirrel
-  'https://cdn-icons-png.flaticon.com/512/616/616428.png', // raccoon
-  'https://cdn-icons-png.flaticon.com/512/616/616411.png', // turtle
-  'https://cdn-icons-png.flaticon.com/512/616/616412.png', // crab
-  'https://cdn-icons-png.flaticon.com/512/616/616413.png', // octopus
-  'https://cdn-icons-png.flaticon.com/512/616/616414.png', // fish
-  'https://cdn-icons-png.flaticon.com/512/616/616415.png', // parrot
+  'https://cdn-icons-png.flaticon.com/512/616/616408.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616430.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616418.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616426.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616410.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616421.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616423.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616425.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616429.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616419.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616427.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616420.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616417.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616424.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616416.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616422.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616428.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616411.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616412.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616413.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616414.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616415.png',
 ];
 
 const UserInfo = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
+  const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
-  // const [attendance, setAttendance] = useState([]);
-  // const [attendanceLoading, setAttendanceLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [newLatitude, setNewLatitude] = useState('');
+  const [newLongitude, setNewLongitude] = useState('');
+  const [locationMessage, setLocationMessage] = useState('');
+
+  // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
+  const fetchLocation = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/locations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Location API status:', res.status);
+      const text = await res.text();
+      console.log('Location API raw response:', text);
+      const data = JSON.parse(text);
+      console.log('Location API parsed data:', data);
+      if (data.success) {
+        setLocation(data.location);
+      } else {
+        setLocation(null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user location:', err);
+      setLocation(null);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,40 +79,67 @@ const UserInfo = () => {
         if (data.success) {
           setUserInfo(data.user);
         } else {
-          console.error('User not found');
+          setError('User not found');
         }
       } catch (err) {
         console.error('Failed to fetch user info', err);
-      } finally {
-        setLoading(false);
+        setError('Failed to load user information. Please try again.');
       }
     };
 
-    // Fetch attendance
-    // const fetchAttendance = async () => {
-    //   try {
-    //     const res = await fetch(`http://localhost:5000/api/admin/attendance/${userId}`, {
-    //       headers: { Authorization: `Bearer ${token}` }
-    //     });
-    //     const data = await res.json();
-    //     if (data.success) {
-    //       setAttendance(data.attendance); // adjust key as per your backend response
-    //     } else {
-    //       setAttendance([]);
-    //     }
-    //   } catch (err) {
-    //     setAttendance([]);
-    //   } finally {
-    //     setAttendanceLoading(false);
-    //   }
-    // };
+    const fetchData = async () => {
+      await Promise.all([fetchUser(), fetchLocation()]);
+      setLoading(false);
+    };
 
-    fetchUser();
-    // fetchAttendance();
+    fetchData();
   }, [userId]);
 
   const handleResetPassword = () => {
     alert('Reset password link has been sent to the user’s email.');
+  };
+  const handleAddLocation = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    
+    try {
+      const latitude = parseFloat(newLatitude);
+      const longitude = parseFloat(newLongitude);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        setLocationMessage('Please enter valid numbers for latitude and longitude');
+        return;
+      }
+      
+      console.log('Sending location data to backend:', { latitude, longitude });
+      
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/locations`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ latitude, longitude })
+      });
+      
+      const text = await res.text();
+      console.log('Location add API raw response:', text);
+      const data = JSON.parse(text);
+      console.log('Location add API parsed data:', data);
+      
+      if (data.success) {
+        setLocationMessage('Location added successfully!');
+        setNewLatitude('');
+        setNewLongitude('');
+        // Refresh location data
+        fetchLocation();
+      } else {
+        setLocationMessage(`Failed to add location: ${data.message}`);
+      }
+    } catch (err) {
+      console.error('Error adding location:', err);
+      setLocationMessage('An error occurred while adding location');
+    }
   };
 
   const getRandomAvatar = () => {
@@ -98,7 +147,6 @@ const UserInfo = () => {
     return defaultAnimalAvatars[idx];
   };
 
-  // Helper to mask password as requested
   const maskPassword = (password = '') => {
     if (!password) return '******';
     if (password.length <= 9) return password.padEnd(18, '*');
@@ -118,44 +166,46 @@ const UserInfo = () => {
     );
   }
 
-  const avatarUrl =  getRandomAvatar();
+  if (error) {
+    return <div className="text-red-500 text-center min-h-screen flex items-center justify-center">{error}</div>;
+  }
+
+  const avatarUrl = getRandomAvatar();
 
   return (
     <>
-    <AnimatedBackground />
-    <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-700 ">
-      {/* Upper Section: Avatar/Name (Left) and Details (Right) */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 w-full max-w-5xl mb-8">
-        <div className="flex flex-col md:flex-row gap-10">
-          {/* Left: Avatar and Name */}
-          <div className="flex flex-col items-center md:w-1/3">
-            <img
-              src={avatarUrl}
-              alt="Avatar"
-              className="w-32 h-32 rounded-full object-cover shadow-md border-4 border-indigo-500 mb-4"
-            />
-            <h2 className="text-3xl font-extrabold text-indigo-700 dark:text-indigo-300 text-center mb-2">
-              {userInfo.name}
-            </h2>
-            <InfoItem icon={<FiMail />} label="" value={userInfo.email} />
-          </div>
-          {/* Right: User Details */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <InfoItem icon={<FiPhone />} label="Mobile" value={userInfo.mobile} />
-            <InfoItem icon={<FiMapPin />} label="Address" value={userInfo.address} />
-            <InfoItem icon={<FiCalendar />} label="Joining Date" value={userInfo.joiningDate} />
-            <InfoItem icon={<MdBadge />} label="Department" value={userInfo.department} />
-            <InfoItem icon={<MdFingerprint />} label="Aadhar Number" value={userInfo.adhar} />
-            <InfoItem icon={<MdFingerprint />} label="PAN Number" value={userInfo.pan} />
-            <InfoItem icon={<FiLock />} label="Password (hashed)" value={maskPassword(userInfo.password)} />
-            <InfoItem
-              icon={userInfo.is_active ? <FiUserCheck /> : <FiUserX />}
-              label="Status"
-              value={userInfo.is_active ? '🟢 Active' : '🔴 Inactive'}
-            />
+      <AnimatedBackground />
+      <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-700">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 w-full max-w-5xl mb-8">
+          <div className="flex flex-col md:flex-row gap-10">
+            <div className="flex flex-col items-center md:w-1/3">
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-32 h-32 rounded-full object-cover shadow-md border-4 border-indigo-500 mb-4"
+              />
+              <h2 className="text-3xl font-extrabold text-indigo-700 dark:text-indigo-300 text-center mb-2">
+                {userInfo.name}
+              </h2>
+              <InfoItem icon={<FiMail />} label="" value={userInfo.email} />
+            </div>
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <InfoItem icon={<FiPhone />} label="Mobile" value={userInfo.mobile} />
+              <InfoItem icon={<FiMapPin />} label="Address" value={userInfo.address} />
+              <InfoItem icon={<FiCalendar />} label="Joining Date" value={new Date(userInfo.joiningDate).toLocaleDateString()} />
+              <InfoItem icon={<MdBadge />} label="Department" value={userInfo.department} />
+              <InfoItem icon={<MdFingerprint />} label="Aadhar Number" value={userInfo.adhar} />
+              <InfoItem icon={<MdFingerprint />} label="PAN Number" value={userInfo.pan} />
+              <InfoItem icon={<FiLock />} label="Password (hashed)" value={maskPassword(userInfo.password)} />
+              <InfoItem
+                icon={userInfo.is_active ? <FiUserCheck /> : <FiUserX />}
+                label="Status"
+                value={userInfo.is_active ? '🟢 Active' : '🔴 Inactive'}
+                className="text-gray-800 dark:text-gray-100 break-words"
+              />
+            </div>
           </div>
         </div>
-        {/* Action Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             onClick={() => navigate('/dashboard')}
@@ -171,23 +221,107 @@ const UserInfo = () => {
           </button>
         </div>
       </div>
-      {/* Map Section */}
       <div className="w-full max-w-5xl">
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
           <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">User Location</h3>
           <div className="rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-indigo-700 shadow-lg" style={{ height: 400, width: "100%" }}>
-            <UserMap latitude={21.15806554667964} longitude={79.10086557313238} />
+            {location ? (
+              <>
+                {console.log('Rendering map with location:', location)}
+                <UserMap
+                  latitude={location.latitude}
+                  longitude={location.longitude}
+                />
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                No location data available
+              </div>
+            )}
+          </div>
+          
+          {/* Add Location Form */}
+          <div className="mt-6 p-4 bg-indigo-50 dark:bg-gray-800 rounded-xl">
+            <h4 className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Add New Location</h4>
+            <form onSubmit={handleAddLocation} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
+                  <input
+                    type="text"
+                    value={newLatitude}
+                    onChange={(e) => setNewLatitude(e.target.value)}
+                    placeholder="e.g. 40.7128"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
+                  <input
+                    type="text"
+                    value={newLongitude}
+                    onChange={(e) => setNewLongitude(e.target.value)}
+                    placeholder="e.g. -74.0060"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+              >
+                Add Location
+              </button>
+            </form>
+            {locationMessage && (
+              <div className={`mt-3 p-3 rounded-md ${locationMessage.includes('success') ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}`}>
+                {locationMessage}
+              </div>
+            )}
+            
+            {/* Debug button to test location fetching */}
+            <button
+              type="button"
+              onClick={async () => {
+                const token = localStorage.getItem('token');
+                try {
+                  const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/all-locations`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  const data = await res.json();
+                  console.log('All locations:', data);
+                  if (data.success && data.locations && data.locations.length > 0) {
+                    const latestLocation = data.locations[0];
+                    console.log('Latest location:', latestLocation);
+                    setLocation({
+                      latitude: latestLocation.location.latitude,
+                      longitude: latestLocation.location.longitude,
+                      timestamp: latestLocation.timestamp
+                    });
+                    setLocationMessage('Location loaded from database');
+                  } else {
+                    setLocationMessage('No locations found in database');
+                  }
+                } catch (err) {
+                  console.error('Error fetching all locations:', err);
+                  setLocationMessage('Error fetching locations');
+                }
+              }}
+              className="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+            >
+              Debug: Load Latest Location
+            </button>
           </div>
         </div>
       </div>
-      {/* Attendance Section */}
       <div className="w-full max-w-5xl mt-8">
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
           <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Attendance</h3>
           {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
         </div>
       </div>
-    </div>
     </>
   );
 };
@@ -202,8 +336,6 @@ const InfoItem = ({ icon, label, value }) => (
       </p>
     </div>
   </div>
-
-  
 );
 
 export default UserInfo;

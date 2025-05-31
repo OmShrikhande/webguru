@@ -1,10 +1,12 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
+
+// Import the Location model to ensure it's registered
+require('./models/location');
 
 dotenv.config();
 const app = express();

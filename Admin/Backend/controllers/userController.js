@@ -1,4 +1,6 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
+const Location = require('../models/location');
 const bcrypt = require('bcrypt');
 
 // Create a new user
@@ -14,11 +16,11 @@ exports.createUser = async (req, res) => {
       department, 
       adhar, 
       pan, 
-      password
+      password,
+      location
     } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    // Create new user
     const newUser = new User({
       name,
       email,
@@ -29,7 +31,8 @@ exports.createUser = async (req, res) => {
       department,
       adhar,
       pan,
-      password: hashedPassword // Ensure password is hashed in the User model pre-save hook
+      password: hashedPassword,
+      location
     });
 
     await newUser.save();
@@ -70,7 +73,7 @@ exports.getAllUsers = async (req, res) => {
 // Get a single user
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select('-password');
     if (!user) {
       return res.status(404).json({ 
         success: false, 
@@ -91,6 +94,51 @@ exports.getUser = async (req, res) => {
   }
 };
 
+// Get user location
+exports.getUserLocation = async (req, res) => {
+  try {
+    // Validate userId format
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user ID' 
+      });
+    }
+
+    console.log('Fetching location for user ID:', req.params.id);
+    const location = await Location.findOne({ userId: req.params.id })
+      .sort({ timestamp: -1 }); // Get the most recent location
+    
+    console.log('Location found in database:', location);
+    
+    if (!location) {
+      console.log('No location found for user');
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No location data found for user' 
+      });
+    }
+    
+    const responseData = { 
+      success: true, 
+      location: {
+        latitude: location.location ? location.location.latitude : location.latitude,
+        longitude: location.location ? location.location.longitude : location.longitude,
+        timestamp: location.timestamp,
+      }
+    };
+    
+    console.log('Sending location data to frontend:', responseData);
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error fetching user location:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch user location', 
+      error: err.message 
+    });
+  }
+};
 // Update a user
 exports.updateUser = async (req, res) => {
   try {
@@ -103,12 +151,15 @@ exports.updateUser = async (req, res) => {
       is_active, 
       department, 
       adhar, 
-      pan ,
+      pan,
       password
     } = req.body;
 
-    // Set updated_at to current time
     req.body.updated_at = Date.now();
+    
+    if (password) {
+      req.body.password = await bcrypt.hash(password, 10);
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id, 
@@ -157,6 +208,67 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to delete user', 
+      error: err.message 
+    });
+  }
+};
+
+// Add user location
+exports.addUserLocation = async (req, res) => {
+  try {
+    // Validate userId format
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user ID' 
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    const { latitude, longitude } = req.body;
+    
+    // Validate location data
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude must be numbers'
+      });
+    }
+
+    // Create new location entry
+    const newLocation = new Location({
+      userId: req.params.id,
+      location: {
+        latitude,
+        longitude
+      },
+      distance: 5 // Default distance value
+    });
+
+    await newLocation.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Location added successfully',
+      location: {
+        latitude: newLocation.location.latitude,
+        longitude: newLocation.location.longitude,
+        timestamp: newLocation.timestamp
+      }
+    });
+  } catch (err) {
+    console.error('Error adding user location:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to add user location', 
       error: err.message 
     });
   }

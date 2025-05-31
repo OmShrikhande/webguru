@@ -1,81 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import React, { useState, useEffect } from 'react';
+import UserMap from './UserMap';
 
-// Fix leaflet's default icon path
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
-
-// Helper component to focus map on marker
-const FocusButton = ({ lat, lng }) => {
-  const map = useMap();
-  const handleFocus = () => {
-    map.setView([lat, lng], 15, { animate: true });
-  };
-  return (
-    <button
-      type="button"
-      onClick={handleFocus}
-      className="absolute top-4 right-4 z-[1000] bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-semibold py-1.5 px-4 rounded-lg shadow-lg transition-all duration-300 text-sm"
-      style={{ pointerEvents: 'auto' }}
-    >
-      Focus Marker
-    </button>
-  );
-};
-
-const UserMap = ({ latitude, longitude, loading }) => {
-  const lat = Number(latitude);
-  const lng = Number(longitude);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full w-full text-indigo-400 animate-pulse">
-        Loading map...
-      </div>
-    );
-  }
-
-  if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-    return (
-      <div className="flex items-center justify-center h-full w-full text-gray-500 dark:text-gray-400">
-        No location data available
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full h-full flex items-center justify-center relative">
-      <div className="rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-indigo-700 shadow-lg w-full h-full relative">
-        <MapContainer
-          center={[lat, lng]}
-          zoom={13}
-          className="w-full h-[400px] min-h-[300px] bg-white dark:bg-gray-900"
-          style={{ minHeight: 300, height: 400, width: '100%', position: 'relative' }}
-        >
-          <TileLayer
-            attribution='© OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={[lat, lng]}>
-            <Popup>User Location</Popup>
-          </Marker>
-          <FocusButton lat={lat} lng={lng} />
-        </MapContainer>
-      </div>
-    </div>
-  );
-};
-
-// --- UserLocationSection component ---
 const UserLocationSection = ({ userId }) => {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -193,5 +118,4 @@ const UserLocationSection = ({ userId }) => {
   );
 };
 
-export { UserMap, UserLocationSection };
-export default UserMap;
+export default UserLocationSection;

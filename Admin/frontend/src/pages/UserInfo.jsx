@@ -218,214 +218,208 @@ const UserInfo = () => {
     <>
       <AnimatedBackground />
       <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-700">
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 w-full max-w-5xl mb-8">
-          <div className="flex flex-col md:flex-row gap-10">
-            <div className="flex flex-col items-center md:w-1/3">
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                className="w-32 h-32 rounded-full object-cover shadow-md border-4 border-indigo-500 mb-4"
-              />
-              <h2 className="text-3xl font-extrabold text-indigo-700 dark:text-indigo-300 text-center mb-2">
-                {userInfo.name}
-              </h2>
-              <InfoItem icon={<FiMail />} label="" value={userInfo.email} />
-            </div>
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8">
+          {/* Sidebar Profile Card */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col items-center md:w-1/3 border border-indigo-100 dark:border-gray-800">
+            <img
+              src={avatarUrl}
+              alt="Avatar"
+              className="w-32 h-32 rounded-full object-cover shadow-lg border-4 border-indigo-500 mb-4"
+            />
+            <h2 className="text-2xl font-bold text-indigo-700 dark:text-indigo-300 text-center mb-1">
+              {userInfo.name}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">{userInfo.email}</p>
+            <div className="w-full flex flex-col gap-3 mt-2">
               <InfoItem icon={<FiPhone />} label="Mobile" value={userInfo.mobile} />
               <InfoItem icon={<FiMapPin />} label="Address" value={userInfo.address} />
               <InfoItem icon={<FiCalendar />} label="Joining Date" value={new Date(userInfo.joiningDate).toLocaleDateString()} />
               <InfoItem icon={<MdBadge />} label="Department" value={userInfo.department} />
-              <InfoItem icon={<MdFingerprint />} label="Aadhar Number" value={userInfo.adhar} />
-              <InfoItem icon={<MdFingerprint />} label="PAN Number" value={userInfo.pan} />
-              <InfoItem icon={<FiLock />} label="Password (hashed)" value={maskPassword(userInfo.password)} />
+              <InfoItem icon={<MdFingerprint />} label="Aadhar" value={userInfo.adhar} />
+              <InfoItem icon={<MdFingerprint />} label="PAN" value={userInfo.pan} />
+              <InfoItem icon={<FiLock />} label="Password" value={maskPassword(userInfo.password)} />
               <InfoItem
                 icon={userInfo.is_active ? <FiUserCheck /> : <FiUserX />}
                 label="Status"
                 value={userInfo.is_active ? '🟢 Active' : '🔴 Inactive'}
-                className="text-gray-800 dark:text-gray-100 break-words"
               />
             </div>
-          </div>
-        </div>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2"
-          >
-            <AiOutlineRollback /> Back to Dashboard
-          </button>
-          <button
-            onClick={handleResetPassword}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2"
-          >
-            <AiOutlineReload /> Reset Password
-          </button>
-        </div>
-      </div>
-      <div className="w-full max-w-5xl">
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
-          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">User Location</h3>
-          <div className="rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-indigo-700 shadow-lg" style={{ height: 400, width: "100%" }}>
-            {location ? (
-              <>
-                {console.log('Rendering map with location:', location)}
-                <UserMap
-                  latitude={location.latitude}
-                  longitude={location.longitude}
-                />
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                No location data available
-              </div>
-            )}
-          </div>
-          
-          {/* Add Location Form */}
-          <div className="mt-6 p-4 bg-indigo-50 dark:bg-gray-800 rounded-xl">
-            <h4 className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Add Location for User to Visit</h4>
-            <form onSubmit={handleAddLocation} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-                <input
-                  type="text"
-                  value={newAddress}
-                  onChange={(e) => setNewAddress(e.target.value)}
-                  placeholder="e.g. 123 Main St, New York, NY 10001"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
-                  <input
-                    type="text"
-                    value={newLatitude}
-                    onChange={(e) => setNewLatitude(e.target.value)}
-                    placeholder="e.g. 40.7128"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
-                  <input
-                    type="text"
-                    value={newLongitude}
-                    onChange={(e) => setNewLongitude(e.target.value)}
-                    placeholder="e.g. -74.0060"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="sendNotification"
-                  checked={sendNotification}
-                  onChange={(e) => setSendNotification(e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="sendNotification" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Send notification to user
-                </label>
-              </div>
+            <div className="flex flex-col gap-3 mt-8 w-full">
               <button
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+                onClick={() => navigate('/dashboard')}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg shadow transition-all flex items-center justify-center gap-2"
               >
-                Add Location for User to Visit
+                <AiOutlineRollback /> Back to Dashboard
               </button>
-            </form>
-            {locationMessage && (
-              <div className={`mt-3 p-3 rounded-md ${locationMessage.includes('success') ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}`}>
-                {locationMessage}
-              </div>
-            )}
-            
-            {/* Debug button to test location fetching */}
-            <button
-              type="button"
-              onClick={async () => {
-                const token = localStorage.getItem('token');
-                try {
-                  const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/all-locations`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                  });
-                  const data = await res.json();
-                  console.log('All locations:', data);
-                  if (data.success && data.locations && data.locations.length > 0) {
-                    const latestLocation = data.locations[0];
-                    console.log('Latest location:', latestLocation);
-                    setLocation({
-                      latitude: latestLocation.location.latitude,
-                      longitude: latestLocation.location.longitude,
-                      timestamp: latestLocation.timestamp
-                    });
-                    setLocationMessage('Location loaded from database');
-                  } else {
-                    setLocationMessage('No locations found in database');
-                  }
-                } catch (err) {
-                  console.error('Error fetching all locations:', err);
-                  setLocationMessage('Error fetching locations');
-                }
-              }}
-              className="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
-            >
-              Debug: Load Latest Location
-            </button>
+              <button
+                onClick={handleResetPassword}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded-lg shadow transition-all flex items-center justify-center gap-2"
+              >
+                <AiOutlineReload /> Reset Password
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="w-full max-w-5xl mt-8">
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
-          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Locations to Visit</h3>
-          {visitLocations.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Address</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date Added</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {visitLocations.map((loc) => (
-                    <tr key={loc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{loc.address}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${loc.visitStatus === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
-                            loc.visitStatus === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 
-                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'}`}>
-                          {loc.visitStatus.charAt(0).toUpperCase() + loc.visitStatus.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                        {new Date(loc.createdAt).toLocaleDateString()} {new Date(loc.createdAt).toLocaleTimeString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col gap-8">
+            {/* User Location Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">User Location</h3>
+              <div className="rounded-xl overflow-hidden border border-indigo-200 dark:border-indigo-700 shadow" style={{ height: 320, width: "100%" }}>
+                {location ? (
+                  <>
+                    {/* Removed debug log for cleaner UI */}
+                    <UserMap
+                      latitude={location.latitude}
+                      longitude={location.longitude}
+                    />
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                    No location data available
+                  </div>
+                )}
+              </div>
+              {/* Add Location Form */}
+              <div className="mt-6 p-5 bg-indigo-50 dark:bg-gray-800 rounded-xl border border-indigo-100 dark:border-gray-700">
+                <h4 className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Add Location for User to Visit</h4>
+                <form onSubmit={handleAddLocation} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                    <input
+                      type="text"
+                      value={newAddress}
+                      onChange={(e) => setNewAddress(e.target.value)}
+                      placeholder="e.g. 123 Main St, New York, NY 10001"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
+                      <input
+                        type="text"
+                        value={newLatitude}
+                        onChange={(e) => setNewLatitude(e.target.value)}
+                        placeholder="e.g. 40.7128"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
+                      <input
+                        type="text"
+                        value={newLongitude}
+                        onChange={(e) => setNewLongitude(e.target.value)}
+                        placeholder="e.g. -74.0060"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="sendNotification"
+                      checked={sendNotification}
+                      onChange={(e) => setSendNotification(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="sendNotification" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                      Send notification to user
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+                  >
+                    Add Location for User to Visit
+                  </button>
+                </form>
+                {locationMessage && (
+                  <div className={`mt-3 p-3 rounded-md ${locationMessage.includes('success') ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}`}>
+                    {locationMessage}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const token = localStorage.getItem('token');
+                    try {
+                      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/all-locations`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      });
+                      const data = await res.json();
+                      if (data.success && data.locations && data.locations.length > 0) {
+                        const latestLocation = data.locations[0];
+                        setLocation({
+                          latitude: latestLocation.location.latitude,
+                          longitude: latestLocation.location.longitude,
+                          timestamp: latestLocation.timestamp
+                        });
+                        setLocationMessage('Location loaded from database');
+                      } else {
+                        setLocationMessage('No locations found in database');
+                      }
+                    } catch (err) {
+                      setLocationMessage('Error fetching locations');
+                    }
+                  }}
+                  className="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+                >
+                  Debug: Load Latest Location
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-              No locations to visit have been assigned yet.
+
+            {/* Locations to Visit */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Locations to Visit</h3>
+              {visitLocations.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Address</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date Added</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                      {visitLocations.map((loc) => (
+                        <tr key={loc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{loc.address}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                              ${loc.visitStatus === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
+                                loc.visitStatus === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 
+                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'}`}>
+                              {loc.visitStatus.charAt(0).toUpperCase() + loc.visitStatus.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {new Date(loc.createdAt).toLocaleDateString()} {new Date(loc.createdAt).toLocaleTimeString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                  No locations to visit have been assigned yet.
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="w-full max-w-5xl mt-8">
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
-          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Attendance</h3>
-          {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
+
+            {/* Attendance Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Attendance</h3>
+              {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
+            </div>
+          </div>
         </div>
       </div>
     </>

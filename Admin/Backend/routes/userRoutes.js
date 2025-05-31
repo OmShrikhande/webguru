@@ -5,7 +5,9 @@ const {
   getAllUsers, 
   getUser, 
   getUserLocation,
-  addUserLocation, // Add this
+  addUserLocation,
+  addUserVisitLocation,
+  getUserVisitLocations,
   updateUser, 
   deleteUser 
 } = require('../controllers/userController');
@@ -17,6 +19,8 @@ router.get('/users', protect, getAllUsers);
 router.get('/users/:id', protect, getUser);
 router.get('/users/:id/locations', protect, getUserLocation);
 router.post('/users/:id/locations', protect, addUserLocation);
+router.post('/users/:id/visit-locations', protect, addUserVisitLocation);
+router.get('/users/:id/visit-locations', protect, getUserVisitLocations);
 
 // Test endpoint to get all locations for a user (for debugging)
 router.get('/users/:id/all-locations', protect, async (req, res) => {

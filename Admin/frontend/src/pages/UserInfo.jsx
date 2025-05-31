@@ -7,7 +7,6 @@ import { MdBadge, MdFingerprint } from 'react-icons/md';
 import { AiOutlineRollback, AiOutlineReload } from 'react-icons/ai';
 import UserMap from '../components/userInfo/UserMap';
 import AnimatedBackground from '../components/userInfo/AnimatedBackground';
-import UserLocationSection from '../components/userInfo/UserLocationSection';
 
 const defaultAnimalAvatars = [
   'https://cdn-icons-png.flaticon.com/512/616/616408.png',
@@ -39,10 +38,13 @@ const UserInfo = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [location, setLocation] = useState(null);
+  const [visitLocations, setVisitLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newLatitude, setNewLatitude] = useState('');
   const [newLongitude, setNewLongitude] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [sendNotification, setSendNotification] = useState(true);
   const [locationMessage, setLocationMessage] = useState('');
 
   // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
@@ -68,6 +70,27 @@ const UserInfo = () => {
     }
   };
 
+  // Function to fetch visit locations
+  const fetchVisitLocations = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/visit-locations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      console.log('Visit locations API response:', data);
+      if (data.success) {
+        setVisitLocations(data.locations || []);
+      } else {
+        console.error('Failed to fetch visit locations:', data.message);
+        setVisitLocations([]);
+      }
+    } catch (err) {
+      console.error('Error fetching visit locations:', err);
+      setVisitLocations([]);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
 
@@ -89,7 +112,7 @@ const UserInfo = () => {
     };
 
     const fetchData = async () => {
-      await Promise.all([fetchUser(), fetchLocation()]);
+      await Promise.all([fetchUser(), fetchLocation(), fetchVisitLocations()]);
       setLoading(false);
     };
 
@@ -112,15 +135,30 @@ const UserInfo = () => {
         return;
       }
       
-      console.log('Sending location data to backend:', { latitude, longitude });
+      if (!newAddress.trim()) {
+        setLocationMessage('Please enter a valid address');
+        return;
+      }
       
-      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/locations`, {
+      console.log('Sending location data to backend:', { 
+        latitude, 
+        longitude, 
+        address: newAddress,
+        sendNotification
+      });
+      
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/visit-locations`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ latitude, longitude })
+        body: JSON.stringify({ 
+          latitude, 
+          longitude, 
+          address: newAddress,
+          sendNotification
+        })
       });
       
       const text = await res.text();
@@ -129,11 +167,14 @@ const UserInfo = () => {
       console.log('Location add API parsed data:', data);
       
       if (data.success) {
-        setLocationMessage('Location added successfully!');
+        setLocationMessage('Location for user visit added successfully! ' + 
+          (sendNotification ? 'Notification sent to user.' : ''));
         setNewLatitude('');
         setNewLongitude('');
-        // Refresh location data
-        fetchLocation();
+        setNewAddress('');
+        
+        // Refresh the visit locations list
+        fetchVisitLocations();
       } else {
         setLocationMessage(`Failed to add location: ${data.message}`);
       }
@@ -177,25 +218,19 @@ const UserInfo = () => {
     <>
       <AnimatedBackground />
       <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-700">
-        {/* Profile Card */}
-        <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-5xl mb-10 border border-indigo-100 dark:border-gray-800">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 w-full max-w-5xl mb-8">
           <div className="flex flex-col md:flex-row gap-10">
-            {/* Avatar & Name */}
             <div className="flex flex-col items-center md:w-1/3">
-              <div className="relative group mb-4">
-                <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-indigo-400 via-pink-400 to-indigo-600 blur-lg opacity-60 group-hover:opacity-90 transition"></span>
-                <img
-                  src={avatarUrl}
-                  alt="Avatar"
-                  className="w-32 h-32 rounded-full object-cover shadow-lg border-4 border-indigo-500 relative z-10"
-                />
-              </div>
-              <h2 className="text-3xl font-extrabold text-indigo-700 dark:text-indigo-200 text-center mb-2 drop-shadow">
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-32 h-32 rounded-full object-cover shadow-md border-4 border-indigo-500 mb-4"
+              />
+              <h2 className="text-3xl font-extrabold text-indigo-700 dark:text-indigo-300 text-center mb-2">
                 {userInfo.name}
               </h2>
-              <InfoItem icon={<FiMail />} label="Email" value={userInfo.email} />
+              <InfoItem icon={<FiMail />} label="" value={userInfo.email} />
             </div>
-            {/* Info Grid */}
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
               <InfoItem icon={<FiPhone />} label="Mobile" value={userInfo.mobile} />
               <InfoItem icon={<FiMapPin />} label="Address" value={userInfo.address} />
@@ -212,35 +247,185 @@ const UserInfo = () => {
               />
             </div>
           </div>
-          <div className="border-t border-indigo-100 dark:border-gray-800 my-8"></div>
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        </div>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2"
+          >
+            <AiOutlineRollback /> Back to Dashboard
+          </button>
+          <button
+            onClick={handleResetPassword}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-300 flex items-center gap-2"
+          >
+            <AiOutlineReload /> Reset Password
+          </button>
+        </div>
+      </div>
+      <div className="w-full max-w-5xl">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
+          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">User Location</h3>
+          <div className="rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-indigo-700 shadow-lg" style={{ height: 400, width: "100%" }}>
+            {location ? (
+              <>
+                {console.log('Rendering map with location:', location)}
+                <UserMap
+                  latitude={location.latitude}
+                  longitude={location.longitude}
+                />
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                No location data available
+              </div>
+            )}
+          </div>
+          
+          {/* Add Location Form */}
+          <div className="mt-6 p-4 bg-indigo-50 dark:bg-gray-800 rounded-xl">
+            <h4 className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Add Location for User to Visit</h4>
+            <form onSubmit={handleAddLocation} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                <input
+                  type="text"
+                  value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                  placeholder="e.g. 123 Main St, New York, NY 10001"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
+                  <input
+                    type="text"
+                    value={newLatitude}
+                    onChange={(e) => setNewLatitude(e.target.value)}
+                    placeholder="e.g. 40.7128"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
+                  <input
+                    type="text"
+                    value={newLongitude}
+                    onChange={(e) => setNewLongitude(e.target.value)}
+                    placeholder="e.g. -74.0060"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="sendNotification"
+                  checked={sendNotification}
+                  onChange={(e) => setSendNotification(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label htmlFor="sendNotification" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                  Send notification to user
+                </label>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+              >
+                Add Location for User to Visit
+              </button>
+            </form>
+            {locationMessage && (
+              <div className={`mt-3 p-3 rounded-md ${locationMessage.includes('success') ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}`}>
+                {locationMessage}
+              </div>
+            )}
+            
+            {/* Debug button to test location fetching */}
             <button
-              onClick={() => navigate('/dashboard')}
-              className="bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
+              type="button"
+              onClick={async () => {
+                const token = localStorage.getItem('token');
+                try {
+                  const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/all-locations`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  const data = await res.json();
+                  console.log('All locations:', data);
+                  if (data.success && data.locations && data.locations.length > 0) {
+                    const latestLocation = data.locations[0];
+                    console.log('Latest location:', latestLocation);
+                    setLocation({
+                      latitude: latestLocation.location.latitude,
+                      longitude: latestLocation.location.longitude,
+                      timestamp: latestLocation.timestamp
+                    });
+                    setLocationMessage('Location loaded from database');
+                  } else {
+                    setLocationMessage('No locations found in database');
+                  }
+                } catch (err) {
+                  console.error('Error fetching all locations:', err);
+                  setLocationMessage('Error fetching locations');
+                }
+              }}
+              className="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
             >
-              <AiOutlineRollback /> Back to Dashboard
-            </button>
-            <button
-              onClick={handleResetPassword}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
-            >
-              <AiOutlineReload /> Reset Password
+              Debug: Load Latest Location
             </button>
           </div>
         </div>
-
-        {/* User Location Section */}
-        <div className="w-full max-w-5xl">
-          <UserLocationSection userId={userId} />
+      </div>
+      <div className="w-full max-w-5xl mt-8">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
+          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Locations to Visit</h3>
+          {visitLocations.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Address</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date Added</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {visitLocations.map((loc) => (
+                    <tr key={loc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{loc.address}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                          ${loc.visitStatus === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
+                            loc.visitStatus === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'}`}>
+                          {loc.visitStatus.charAt(0).toUpperCase() + loc.visitStatus.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                        {new Date(loc.createdAt).toLocaleDateString()} {new Date(loc.createdAt).toLocaleTimeString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              No locations to visit have been assigned yet.
+            </div>
+          )}
         </div>
-
-        {/* Attendance Section */}
-        <div className="w-full max-w-5xl mt-8">
-          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-lg rounded-3xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
-            <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-200 mb-4">Attendance</h3>
-            {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
-          </div>
+      </div>
+      
+      <div className="w-full max-w-5xl mt-8">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-6">
+          <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mb-4">Attendance</h3>
+          {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
         </div>
       </div>
     </>

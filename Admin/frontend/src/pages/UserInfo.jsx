@@ -31,6 +31,12 @@ const defaultAnimalAvatars = [
   'https://cdn-icons-png.flaticon.com/512/616/616413.png',
   'https://cdn-icons-png.flaticon.com/512/616/616414.png',
   'https://cdn-icons-png.flaticon.com/512/616/616415.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616409.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616431.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616432.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616433.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616434.png',
+  'https://cdn-icons-png.flaticon.com/512/616/616435.png',
 ];
 
 const UserInfo = () => {

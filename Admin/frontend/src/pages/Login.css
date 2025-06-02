@@ -1,8 +1,8 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #121212, #1e1e1e);
-  color: #f0f0f0;
+  background: black;
+  color: #ffffff;
 }
 
 .login-container {

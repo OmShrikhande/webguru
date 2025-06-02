@@ -4,6 +4,8 @@ import Login from './Login';
 import { useNavigate } from 'react-router-dom';
 import UserData from '../components/dashboard/userdata';
 import AnimatedParticlesBackground from '../components/dashboard/AnimatedParticlesBackground';
+import ProfessionalDashboard from '../components/dashboard/ProfessionalDashboard';
+import FuturisticBackground from '../components/backgrounds/FuturisticBackground'; // <-- Add this import
 
 const Dashboard = () => {
   const [authorized, setAuthorized] = useState(true); // security flag
@@ -27,17 +29,17 @@ const Dashboard = () => {
   const canvasRef = useRef(null);
 
   // Run on mount
-  // useEffect(() => {
-  //   const token = localStorage.getItem('token');
-  //   if (!token) {
-  //     navigate('/'); // Not logged in
-  //     return;
-  //   }
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/'); // Not logged in
+      return;
+    }
 
-  //   // Set authorized and fetch users
-  //   setAuthorized(true);
-  //   fetchUsers(token);
-  // }, []);
+    // Set authorized and fetch users
+    setAuthorized(true);
+    fetchUsers(token);
+  }, []);
 
   // Fetch all users
   const fetchUsers = async (token) => {
@@ -221,42 +223,16 @@ const Dashboard = () => {
   if (!authorized) return null;
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gray-900">
-      {/* Animated SVG background */}
-      <svg
-        className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-        style={{ opacity: 0.18 }}
-      >
-        <circle cx="20%" cy="30%" r="120" fill="#6366f1">
-          <animate attributeName="cx" values="20%;80%;20%" dur="10s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="80%" cy="70%" r="90" fill="#818cf8">
-          <animate attributeName="cy" values="70%;20%;70%" dur="12s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="50%" cy="50%" r="200" fill="#312e81">
-          <animate attributeName="r" values="200;250;200" dur="8s" repeatCount="indefinite" />
-        </circle>
-      </svg>
-
-      {/* Advanced Animated Canvas background */}
-      <AnimatedParticlesBackground />
-
-      {/* Main content */}
-      <div className="relative z-10">
-        <div className="flex justify-between items-center mb-6 px-8 pt-8">
-          <h2 className="text-3xl font-bold text-indigo-100">Admin Dashboard</h2>
-          <button
-            onClick={() => navigate('/adduser')}
-            className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-6 rounded-lg shadow transition-all duration-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-50"
-          >
-            Add User
-          </button>
-        </div>
-        <div className="px-8 pb-8">
+    <FuturisticBackground>
+      <ProfessionalDashboard>
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">User Management</h3>
           <UserData />
         </div>
-      </div>
-    </div>
+        {/* Hidden canvas for particle animation (if needed elsewhere) */}
+        <canvas ref={canvasRef} className="hidden" />
+      </ProfessionalDashboard>
+    </FuturisticBackground>
   );
 };
 

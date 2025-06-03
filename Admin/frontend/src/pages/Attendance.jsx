@@ -13,6 +13,9 @@ const Attendance = () => {
     endDate: new Date().toISOString().split('T')[0]
   });
   const [attendanceStats, setAttendanceStats] = useState(null);
+  const [todayAttendance, setTodayAttendance] = useState(null);
+  const [todayRecords, setTodayRecords] = useState([]);
+  const [departmentStats, setDepartmentStats] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAttendance, setNewAttendance] = useState({
     userId: '',
@@ -31,13 +34,12 @@ const Attendance = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-
+      if (!token) throw new Error('No authentication token found');
       // Fetch users
       const usersResponse = await axios.get('http://localhost:5000/api/admin/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(usersResponse.data.users);
-
       // Fetch attendance data
       try {
         const attendanceResponse = await axios.get('http://localhost:5000/api/attendance', {
@@ -51,10 +53,9 @@ const Attendance = () => {
         });
         setAttendanceData(attendanceResponse.data.data || []);
       } catch (err) {
-        console.log('Attendance data not available');
+        console.error('Error fetching attendance data:', err.response?.data || err.message);
         setAttendanceData([]);
       }
-
       // Fetch attendance summary
       try {
         const summaryResponse = await axios.get('http://localhost:5000/api/attendance/summary', {
@@ -62,12 +63,29 @@ const Attendance = () => {
         });
         setAttendanceStats(summaryResponse.data.data);
       } catch (err) {
-        console.log('Attendance summary not available');
+        console.error('Error fetching attendance summary:', err.response?.data || err.message);
       }
-
+      // Fetch today's attendance data
+      try {
+        const todayResponse = await axios.get('http://localhost:5000/api/dashboard/today-attendance', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (todayResponse.data.success) {
+          setTodayAttendance(todayResponse.data.data.summary);
+          setTodayRecords(todayResponse.data.data.records || []);
+          setDepartmentStats(todayResponse.data.data.departmentStats || []);
+        } else {
+          console.error('Today attendance request failed:', todayResponse.data.message);
+          alert('Failed to fetch today\'s attendance: ' + todayResponse.data.message);
+        }
+      } catch (err) {
+        console.error('Error fetching today\'s attendance:', err.response?.data || err.message);
+        alert('Failed to fetch today\'s attendance data. Please try again.');
+      }
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching data:', error.message);
+      alert('Error fetching data: ' + error.message);
       setLoading(false);
     }
   };
@@ -75,29 +93,23 @@ const Attendance = () => {
   const addAttendanceRecord = async () => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Convert time strings to full datetime
+      console.log('Adding attendance for userId:', newAttendance.userId);
+      const selectedDate = new Date(newAttendance.date);
+      selectedDate.setHours(0, 0, 0, 0);
       const checkInDateTime = new Date(`${newAttendance.date}T${newAttendance.checkIn.time}`);
       const checkOutDateTime = newAttendance.checkOut.time ? 
         new Date(`${newAttendance.date}T${newAttendance.checkOut.time}`) : null;
-
       const attendanceRecord = {
         ...newAttendance,
-        checkIn: {
-          ...newAttendance.checkIn,
-          time: checkInDateTime
-        },
-        checkOut: checkOutDateTime ? {
-          ...newAttendance.checkOut,
-          time: checkOutDateTime
-        } : undefined,
+        date: selectedDate,
+        checkIn: { ...newAttendance.checkIn, time: checkInDateTime },
+        checkOut: checkOutDateTime ? { ...newAttendance.checkOut, time: checkOutDateTime } : undefined,
         isManualEntry: true
       };
-
-      await axios.post('http://localhost:5000/api/attendance', attendanceRecord, {
+      const response = await axios.post('http://localhost:5000/api/attendance', attendanceRecord, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
+      console.log('Attendance record added:', response.data);
       setShowAddModal(false);
       setNewAttendance({
         userId: '',
@@ -109,8 +121,8 @@ const Attendance = () => {
       });
       fetchData();
     } catch (error) {
-      console.error('Error adding attendance record:', error);
-      alert('Failed to add attendance record');
+      console.error('Error adding attendance record:', error.response?.data || error.message);
+      alert('Failed to add attendance record: ' + (error.response?.data?.message || 'Unknown error'));
     }
   };
 
@@ -181,38 +193,144 @@ const Attendance = () => {
           </div>
 
           {/* Stats Cards */}
-          {attendanceStats && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <StatCard
-                title="Today's Attendance"
-                value={attendanceStats.todayAttendance}
-                subtitle="Present today"
-                icon="📅"
-                color="blue"
-              />
-              <StatCard
-                title="Present Today"
-                value={attendanceStats.presentToday}
-                subtitle="On time arrivals"
-                icon="✅"
-                color="green"
-              />
-              <StatCard
-                title="Late Arrivals"
-                value={attendanceStats.lateToday}
-                subtitle="Late today"
-                icon="⏰"
-                color="yellow"
-              />
-              <StatCard
-                title="Average Hours"
-                value={`${attendanceStats.averageHours?.toFixed(1) || 0}h`}
-                subtitle="This month"
-                icon="📊"
-                color="purple"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard
+              title="Today's Attendance"
+              value={todayAttendance?.total || attendanceStats?.todayAttendance || 0}
+              subtitle="Total check-ins"
+              icon="📅"
+              color="blue"
+            />
+            <StatCard
+              title="Present Today"
+              value={todayAttendance?.present || attendanceStats?.presentToday || 0}
+              subtitle="On time arrivals"
+              icon="✅"
+              color="green"
+            />
+            <StatCard
+              title="Late Arrivals"
+              value={todayAttendance?.late || attendanceStats?.lateToday || 0}
+              subtitle="Late today"
+              icon="⏰"
+              color="yellow"
+            />
+            <StatCard
+              title="Absent Today"
+              value={todayAttendance?.absent || 0}
+              subtitle="Not checked in"
+              icon="❌"
+              color="red"
+            />
+          </div>
+          
+          {/* Today's Attendance Summary */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white">Today's Attendance</h3>
+              <div className="flex items-center space-x-2">
+                <span className="text-cyan-200 text-sm">
+                  Average Check-in Time: {todayAttendance?.averageCheckInTime || 'N/A'}
+                </span>
+                <button
+                  onClick={fetchData}
+                  className="bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-200 p-2 rounded-lg transition-all duration-300"
+                >
+                  🔄
+                </button>
+              </div>
             </div>
-          )}
+            
+            {/* Department-wise attendance */}
+            {departmentStats && departmentStats.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {departmentStats.map((dept, index) => (
+                  <div key={index} className="bg-white/10 rounded-xl p-4 border border-white/20">
+                    <h4 className="text-white font-medium mb-2">{dept._id || 'Unknown Department'}</h4>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-cyan-200">Present:</span>
+                      <span className="text-white">{dept.present} / {dept.total}</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full" 
+                        style={{ width: `${Math.round((dept.present / dept.total) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="bg-green-500/20 rounded p-1 text-center">
+                        <span className="block text-green-300">{dept.present}</span>
+                        <span className="text-white/70">Present</span>
+                      </div>
+                      <div className="bg-yellow-500/20 rounded p-1 text-center">
+                        <span className="block text-yellow-300">{dept.late}</span>
+                        <span className="text-white/70">Late</span>
+                      </div>
+                      <div className="bg-red-500/20 rounded p-1 text-center">
+                        <span className="block text-red-300">{dept.absent}</span>
+                        <span className="text-white/70">Absent</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Today's attendance records */}
+            {todayRecords && todayRecords.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-white/20">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-white font-medium">Employee</th>
+                      <th className="px-6 py-3 text-left text-white font-medium">Check In</th>
+                      <th className="px-6 py-3 text-left text-white font-medium">Check Out</th>
+                      <th className="px-6 py-3 text-left text-white font-medium">Hours</th>
+                      <th className="px-6 py-3 text-left text-white font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todayRecords.map((record, index) => (
+                      <tr key={index} className="border-b border-white/10 hover:bg-white/10 transition-all duration-300">
+                        <td className="px-6 py-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 
+                                          rounded-full flex items-center justify-center text-white font-bold text-sm">
+                              {record.userId?.name?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">{record.userId?.name || 'Unknown'}</p>
+                              <p className="text-cyan-200 text-sm">{record.userId?.department || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3 text-white">
+                          {formatTime(record.loginTime)}
+                        </td>
+                        <td className="px-6 py-3 text-white">
+                          {formatTime(record.logoutTime)}
+                        </td>
+                        <td className="px-6 py-3 text-white">
+                          {record.totalHours ? `${record.totalHours.toFixed(1)}h` : 'N/A'}
+                        </td>
+                        <td className="px-6 py-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
+                            {record.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">📅</div>
+                <p className="text-xl text-white mb-2">No attendance records for today</p>
+                <p className="text-cyan-200">Employees haven't checked in yet</p>
+              </div>
+            )}
+          </div>
 
           {/* Filters */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
@@ -308,10 +426,10 @@ const Attendance = () => {
                           {new Date(record.date).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 text-white">
-                          {formatTime(record.checkIn?.time)}
+                          {formatTime(record.loginTime)}
                         </td>
                         <td className="px-6 py-4 text-white">
-                          {formatTime(record.checkOut?.time)}
+                          {formatTime(record.logoutTime)}
                         </td>
                         <td className="px-6 py-4 text-white">
                           {record.totalHours ? `${record.totalHours.toFixed(1)}h` : 'N/A'}
@@ -463,3 +581,4 @@ const Attendance = () => {
 };
 
 export default Attendance;
+

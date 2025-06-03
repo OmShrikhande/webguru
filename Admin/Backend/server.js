@@ -2,10 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const adminRoutes = require('./routes/adminRoutes');
+const adminRoutes = require('./routes/adminRoutes.js');
 const userRoutes = require('./routes/userRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const attendanceRoutes = require('./routes/attendanceRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes.js');
+const attendanceRoutes = require('./routes/attendanceRoutes.js');
 
 // Import models to ensure they're registered
 require('./models/location');

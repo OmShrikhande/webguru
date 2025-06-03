@@ -58,6 +58,11 @@ const UserInfo = () => {
   const [newAddress, setNewAddress] = useState('');
   const [sendNotification, setSendNotification] = useState(true);
   const [locationMessage, setLocationMessage] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
 
   // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
   const fetchLocation = async () => {
@@ -132,8 +137,37 @@ const UserInfo = () => {
   }, [userId]);
 
   const handleResetPassword = () => {
-    alert('Reset password link has been sent to the user’s email.');
+    setShowResetModal(true);
   };
+  const handleResetSubmit = async () => {
+    setResetError('');
+    setResetSuccess('');
+    if (newPassword !== confirmPassword) {
+      setResetError('Passwords do not match');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/users/${userInfo._id}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setResetSuccess('Password reset successfully!');
+        setShowResetModal(false);
+      } else {
+        setResetError(data.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setResetError('Server error');
+    }
+  };
+
   const handleAddLocation = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -444,6 +478,45 @@ const UserInfo = () => {
           </div>
         </div>
       </ProfessionalDashboard>
+      {showResetModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              Reset Password for {userInfo.name}
+            </h3>
+            <input
+              type="password"
+              placeholder="New Password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white mb-3"
+            />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white mb-4"
+            />
+            {resetError && <div className="text-red-500 text-sm mb-4">{resetError}</div>}
+            {resetSuccess && <div className="text-green-500 text-sm mb-4">{resetSuccess}</div>}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleResetSubmit}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md transition-colors duration-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </FuturisticBackground>
   );
 };

@@ -6,67 +6,37 @@ const AttendanceSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  date: {
+  loginTime: {
     type: Date,
-    required: true,
-    default: Date.now
+    required: true
   },
-  checkIn: {
-    time: {
-      type: Date,
+  logoutTime: {
+    type: Date,
+    default: null
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
       required: true
     },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: true
-      }
-    },
     address: {
       type: String,
       default: ''
     }
   },
-  checkOut: {
-    time: {
-      type: Date
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number] // [longitude, latitude]
-      }
-    },
-    address: {
-      type: String,
-      default: ''
-    }
-  },
-  totalHours: {
-    type: Number,
-    default: 0
+  date: {
+    type: String,
+    required: true
   },
   status: {
     type: String,
     enum: ['present', 'absent', 'late', 'half-day'],
     default: 'present'
-  },
-  notes: {
-    type: String,
-    default: ''
-  },
-  isManualEntry: {
-    type: Boolean,
-    default: false
   },
   createdAt: {
     type: Date,
@@ -78,18 +48,15 @@ const AttendanceSchema = new mongoose.Schema({
   }
 });
 
-// Index for faster queries
+// Indexes for faster lookups
 AttendanceSchema.index({ userId: 1, date: 1 });
 AttendanceSchema.index({ date: 1 });
 
-// Calculate total hours before saving
-AttendanceSchema.pre('save', function(next) {
-  if (this.checkIn.time && this.checkOut.time) {
-    const diffInMs = this.checkOut.time - this.checkIn.time;
-    this.totalHours = Math.round((diffInMs / (1000 * 60 * 60)) * 100) / 100; // Round to 2 decimal places
-  }
+// Update timestamp before save
+AttendanceSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model('Attendance', AttendanceSchema);
+// Specify the collection name as 'attendancev'
+module.exports = mongoose.model('Attendance', AttendanceSchema, 'attendance');

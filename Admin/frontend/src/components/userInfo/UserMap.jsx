@@ -250,6 +250,9 @@ const UserLocationSection = ({ userId }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [filterActive, setFilterActive] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [addMsg, setAddMsg] = useState('');
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -649,14 +652,15 @@ const UserLocationSection = ({ userId }) => {
       {/* Add Location Form */}
       <div className="mt-6 p-4 bg-indigo-50/80 dark:bg-gray-800/80 rounded-xl shadow border border-indigo-100 dark:border-gray-700">
         <h4 className="text-lg font-semibold text-indigo-700 dark:text-indigo-200 mb-3">Add New Location</h4>
-        <form onSubmit={handleAddLocation} className="space-y-4">
+        <form onSubmit={e => { e.preventDefault(); handleAddLocation(); }} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
               <input
-                type="text"
-                value={newLatitude}
-                onChange={(e) => setNewLatitude(e.target.value)}
+                type="number"
+                step="any"
+                value={lat}
+                onChange={e => setLat(e.target.value)}
                 placeholder="e.g. 40.7128"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 required
@@ -665,9 +669,10 @@ const UserLocationSection = ({ userId }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
               <input
-                type="text"
-                value={newLongitude}
-                onChange={(e) => setNewLongitude(e.target.value)}
+                type="number"
+                step="any"
+                value={lng}
+                onChange={e => setLng(e.target.value)}
                 placeholder="e.g. -74.0060"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 required
@@ -680,6 +685,7 @@ const UserLocationSection = ({ userId }) => {
           >
             Add Location
           </button>
+          {addMsg && <div className="mt-3 text-sm text-gray-700 dark:text-gray-300">{addMsg}</div>}
         </form>
         {locationMessage && (
           <div className={`mt-3 p-3 rounded-md shadow ${locationMessage.includes('success') ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}`}>

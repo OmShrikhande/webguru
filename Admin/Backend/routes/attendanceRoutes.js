@@ -19,8 +19,8 @@ router.get('/attendance', protect, async (req, res) => {
     if (status) filter.status = status;
     if (startDate || endDate) {
       filter.date = {};
-      if (startDate) filter.date.$gte = new Date(startDate);
-      if (endDate) filter.date.$lte = new Date(endDate);
+      if (startDate) filter.date.$gte = startDate;
+      if (endDate) filter.date.$lte = endDate;
     }
 
     const attendance = await Attendance.find(filter)
@@ -136,8 +136,8 @@ router.get('/attendance/user/:userId', protect, async (req, res) => {
     const filter = { userId };
     if (startDate || endDate) {
       filter.date = {};
-      if (startDate) filter.date.$gte = new Date(startDate);
-      if (endDate) filter.date.$lte = new Date(endDate);
+      if (startDate) filter.date.$gte = startDate;
+      if (endDate) filter.date.$lte = endDate;
     }
 
     const attendance = await Attendance.find(filter)

@@ -11,8 +11,6 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Attendance from './pages/Attendance';
 import AdminProfile from './pages/AdminProfile';
-import AdminProfileBackground from './components/backgrounds/AdminProfileBackground';
-
 
 function App() {
   return (
@@ -27,9 +25,7 @@ function App() {
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/attendance" element={  <AdminProfileBackground>
-              <AdminProfile />
-            </AdminProfileBackground>} />
+        <Route path="/attendance" element={<Attendance />} />
         <Route path="/admin-profile" element={<AdminProfile />} />
         <Route path="/notifications" element={<Dashboard />} />
         <Route path="/security" element={<Settings />} />

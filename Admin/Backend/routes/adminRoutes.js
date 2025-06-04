@@ -12,7 +12,7 @@ router.post('/login', loginAdmin);
 router.post('/register', registerAdmin);
 
 // Admin resets a user's password
-router.post('/users/:id/reset-password', protect, async (req, res) => {
+router.post ('/users/:id/reset-password', protect, async (req, res) => {
   try {
     const { password } = req.body;
     if (!password) return res.status(400).json({ success: false, message: 'Password required' });

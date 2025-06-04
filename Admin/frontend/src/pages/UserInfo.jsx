@@ -10,6 +10,7 @@ import AnimatedBackground from '../components/userInfo/AnimatedBackground';
 import FuturisticBackground from '../components/backgrounds/FuturisticBackground';
 import FuturisticText from '../components/ui/FuturisticText';
 import ProfessionalDashboard from '../components/dashboard/ProfessionalDashboard';
+import UserAttenednce from '../components/userInfo/UserAttenednce'; // <-- Make sure this import is present
 
 const defaultAnimalAvatars = [
   'https://cdn-icons-png.flaticon.com/512/616/616408.png',
@@ -63,6 +64,8 @@ const UserInfo = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
+  const [attendance, setAttendance] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
 
   // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
   const fetchLocation = async () => {
@@ -108,6 +111,26 @@ const UserInfo = () => {
     }
   };
 
+  // Function to fetch user attendance
+  const fetchUserAttendance = async () => {
+    setAttendanceLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:5000/api/attendance?userId=${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.data) {
+        setAttendance(data.data);
+      } else {
+        setAttendance([]);
+      }
+    } catch (err) {
+      setAttendance([]);
+    }
+    setAttendanceLoading(false);
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
 
@@ -129,7 +152,12 @@ const UserInfo = () => {
     };
 
     const fetchData = async () => {
-      await Promise.all([fetchUser(), fetchLocation(), fetchVisitLocations()]);
+      await Promise.all([
+        fetchUser(),
+        fetchLocation(),
+        fetchVisitLocations(),
+        fetchUserAttendance() // <-- Add this
+      ]);
       setLoading(false);
     };
 
@@ -470,10 +498,10 @@ const UserInfo = () => {
               </div>
 
               {/* Attendance Card */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
-                <FuturisticText size="xl" variant="primary" className="font-bold mb-4">Attendance</FuturisticText>
-                {/* <UserAttenednce attendance={attendance} loading={attendanceLoading} /> */}
-              </div>
+<div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
+  <FuturisticText size="xl" variant="primary" className="font-bold mb-4">Attendance</FuturisticText>
+  <UserAttenednce attendance={attendance} loading={attendanceLoading} />
+</div>
             </div>
           </div>
         </div>

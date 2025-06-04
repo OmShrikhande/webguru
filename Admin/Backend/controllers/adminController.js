@@ -33,13 +33,31 @@ exports.loginAdmin = async (req, res) => {
 
     if (!isMatch) return res.status(400).json({ success: false, message: 'Invalid credentials (wrong password)' });
 
+    // Update login history and last login
+    const loginEntry = {
+      loginTime: new Date(),
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent')
+    };
+    
+    admin.loginHistory.push(loginEntry);
+    admin.lastLogin = new Date();
+    
+    // Keep only last 10 login records
+    if (admin.loginHistory.length > 10) {
+      admin.loginHistory = admin.loginHistory.slice(-10);
+    }
+    
+    await admin.save();
+
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ 
       success: true,
       token, 
       admin: { 
         id: admin._id, 
-        email: admin.email 
+        email: admin.email,
+        username: admin.username || admin.email.split('@')[0]
       } 
     });
   } catch (err) {
@@ -113,5 +131,122 @@ exports.sendOTP = async (req, res) => {
   } catch (err) {
     console.error('❌ Error in sendOTP:', err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+// Get admin profile
+exports.getAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('-password -otp -otpExpires');
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      admin: admin 
+    });
+  } catch (err) {
+    console.error('Error fetching admin profile:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Update admin profile
+exports.updateAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.admin.id;
+    const updateData = { ...req.body };
+    
+    // Remove fields that shouldn't be updated through this endpoint
+    delete updateData.password;
+    delete updateData.email;
+    delete updateData.otp;
+    delete updateData.otpExpires;
+    delete updateData.loginHistory;
+    delete updateData.createdAt;
+    
+    const admin = await Admin.findByIdAndUpdate(
+      adminId, 
+      updateData, 
+      { new: true, runValidators: true }
+    ).select('-password -otp -otpExpires');
+    
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Profile updated successfully',
+      admin: admin 
+    });
+  } catch (err) {
+    console.error('Error updating admin profile:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Update admin password
+exports.updateAdminPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const adminId = req.admin.id;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password and new password are required' 
+      });
+    }
+    
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+    
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
+    if (!isMatch) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password is incorrect' 
+      });
+    }
+    
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    admin.password = hashedNewPassword;
+    await admin.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Password updated successfully' 
+    });
+  } catch (err) {
+    console.error('Error updating password:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Record logout time
+exports.recordLogout = async (req, res) => {
+  try {
+    const adminId = req.admin.id;
+    const admin = await Admin.findById(adminId);
+    
+    if (admin && admin.loginHistory.length > 0) {
+      // Update the most recent login entry with logout time
+      const lastLoginIndex = admin.loginHistory.length - 1;
+      if (!admin.loginHistory[lastLoginIndex].logoutTime) {
+        admin.loginHistory[lastLoginIndex].logoutTime = new Date();
+        await admin.save();
+      }
+    }
+    
+    res.json({ success: true, message: 'Logout recorded successfully' });
+  } catch (err) {
+    console.error('Error recording logout:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };

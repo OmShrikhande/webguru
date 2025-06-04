@@ -7,11 +7,13 @@ const ProfessionalDashboard = ({ children }) => {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [recentActivities, setRecentActivities] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [adminInfo, setAdminInfo] = useState(null);
   const navigate = useNavigate();
 
   // Fetch dashboard data
   useEffect(() => {
     fetchDashboardData();
+    fetchAdminInfo();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -56,9 +58,52 @@ const ProfessionalDashboard = ({ children }) => {
     { name: 'Settings', icon: '⚙️', path: '/settings' }
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
+  const fetchAdminInfo = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await axios.get('http://localhost:5000/api/admin/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setAdminInfo(response.data.admin);
+      }
+    } catch (err) {
+      console.log('Admin info not available');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Record logout time
+        await axios.post('http://localhost:5000/api/admin/logout', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (err) {
+      console.log('Error recording logout:', err);
+    } finally {
+      localStorage.removeItem('token');
+      navigate('/');
+    }
+  };
+
+  const getDisplayName = () => {
+    if (!adminInfo) return 'Admin';
+    
+    if (adminInfo.firstName && adminInfo.lastName) {
+      return `${adminInfo.firstName} ${adminInfo.lastName}`;
+    }
+    
+    if (adminInfo.username) {
+      return adminInfo.username;
+    }
+    
+    return adminInfo.email?.split('@')[0] || 'Admin';
   };
 
   return (
@@ -149,12 +194,17 @@ const ProfessionalDashboard = ({ children }) => {
                 <span className="text-xl">🔔</span>
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Admin</span>
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600">👤</span>
+              <button 
+                onClick={() => navigate('/admin-profile')}
+                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <span className="text-sm text-gray-900">{getDisplayName()}</span>
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">
+                    {adminInfo?.firstName ? adminInfo.firstName[0] : adminInfo?.email?.[0]?.toUpperCase() || 'A'}
+                  </span>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </header>

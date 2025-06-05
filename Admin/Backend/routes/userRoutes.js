@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const { 
   createUser, 
   getAllUsers, 
@@ -11,7 +13,33 @@ const {
   updateUser, 
   deleteUser 
 } = require('../controllers/userController');
+const { uploadVisitImage } = require('../controllers/userController');
 const { protect } = require('../middleware/auth');
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/visit-images/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'image-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // Protected user routes
 router.post('/users', protect, createUser);
@@ -21,6 +49,63 @@ router.get('/users/:id/locations', protect, getUserLocation);
 router.post('/users/:id/locations', protect, addUserLocation);
 router.post('/users/:id/visit-locations', protect, addUserVisitLocation);
 router.get('/users/:id/visit-locations', protect, getUserVisitLocations);
+
+// Image upload route for visit locations
+router.post('/visit-locations/:id/upload-image', protect, upload.single('image'), uploadVisitImage);
+
+// Route to get assigned visit locations for a user (for mobile app)
+router.get('/visit-locations/assigned/:userId', protect, async (req, res) => {
+  try {
+    const VisitLocation = require('../models/visitLocation');
+    const visitLocations = await VisitLocation.find({ userId: req.params.userId });
+    
+    res.status(200).json({
+      success: true,
+      visitLocations: visitLocations
+    });
+  } catch (error) {
+    console.error('Error fetching assigned visit locations:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch visit locations' });
+  }
+});
+
+// Route to update visit location status (for mobile app)
+router.put('/visit-locations/:id/status', protect, async (req, res) => {
+  try {
+    const VisitLocation = require('../models/visitLocation');
+    const { visitStatus, userFeedback, userLocation } = req.body;
+    
+    const visitLocation = await VisitLocation.findById(req.params.id);
+    if (!visitLocation) {
+      return res.status(404).json({ success: false, message: 'Visit location not found' });
+    }
+    
+    visitLocation.visitStatus = visitStatus;
+    if (userFeedback) visitLocation.userFeedback = userFeedback;
+    if (userLocation) visitLocation.userLocation = userLocation;
+    
+    await visitLocation.save();
+    
+    res.status(200).json({ success: true, message: 'Status updated successfully' });
+  } catch (error) {
+    console.error('Error updating visit location status:', error);
+    res.status(500).json({ success: false, message: 'Failed to update status' });
+  }
+});
+
+// Route to mark visit location as read
+router.put('/visit-locations/:id/read', protect, async (req, res) => {
+  try {
+    const VisitLocation = require('../models/visitLocation');
+    
+    await VisitLocation.findByIdAndUpdate(req.params.id, { isRead: true });
+    
+    res.status(200).json({ success: true, message: 'Marked as read' });
+  } catch (error) {
+    console.error('Error marking as read:', error);
+    res.status(500).json({ success: false, message: 'Failed to mark as read' });
+  }
+});
 
 // Add a new endpoint to get all users with their today's locations
 router.get('/users-with-locations', protect, async (req, res) => {

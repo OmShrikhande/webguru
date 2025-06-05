@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FiMail, FiPhone, FiMapPin, FiCalendar, FiUserCheck, FiLock, FiUserX
+  FiMail, FiPhone, FiMapPin, FiCalendar, FiUserCheck, FiLock, FiUserX, FiEye, FiX
 } from 'react-icons/fi';
 import { MdBadge, MdFingerprint } from 'react-icons/md';
 import { AiOutlineRollback, AiOutlineReload } from 'react-icons/ai';
@@ -68,6 +68,8 @@ const UserInfo = () => {
   const [resetSuccess, setResetSuccess] = useState('');
   const [attendance, setAttendance] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
   const fetchLocation = async () => {
@@ -295,6 +297,18 @@ const UserInfo = () => {
     if (!password) return '******';
     if (password.length <= 9) return password.padEnd(18, '*');
     return password.slice(0, 9) + '******';
+  };
+
+  const handleViewTaskInfo = (task) => {
+    console.log('Selected task:', task);
+    console.log('Task images:', task.images);
+    setSelectedTask(task);
+    setShowTaskModal(true);
+  };
+
+  const closeTaskModal = () => {
+    setSelectedTask(null);
+    setShowTaskModal(false);
   };
 
   if (loading) {
@@ -526,6 +540,8 @@ const UserInfo = () => {
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Address</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date Added</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Completion Time</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -542,6 +558,34 @@ const UserInfo = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                               {new Date(loc.createdAt).toLocaleDateString()} {new Date(loc.createdAt).toLocaleTimeString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                              {loc.completionTime ? 
+                                `${new Date(loc.completionTime).toLocaleDateString()} ${new Date(loc.completionTime).toLocaleTimeString()}` : 
+                                loc.visitStatus === 'completed' && loc.visitDate ? 
+                                `${new Date(loc.visitDate).toLocaleDateString()} ${new Date(loc.visitDate).toLocaleTimeString()}` :
+                                loc.visitStatus === 'completed' ? 'Completed' : 'Not completed'
+                              }
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleViewTaskInfo(loc)}
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200"
+                                  title="View complete task information"
+                                >
+                                  <FiEye className="text-sm" />
+                                  View Info
+                                </button>
+                                {loc.images && loc.images.length > 0 && (
+                                  <div className="flex items-center gap-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded-full text-xs">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                    </svg>
+                                    {loc.images.length}
+                                  </div>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -598,6 +642,247 @@ const UserInfo = () => {
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md transition-colors duration-300"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Details Modal */}
+      {showTaskModal && selectedTask && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <FuturisticText size="xl" variant="primary" className="font-bold">
+                Task Details
+              </FuturisticText>
+              <button
+                onClick={closeTaskModal}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              >
+                <FiX className="text-2xl" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Task ID</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">{selectedTask.id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Status</label>
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${selectedTask.visitStatus === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
+                        selectedTask.visitStatus === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 
+                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'}`}>
+                      {selectedTask.visitStatus.charAt(0).toUpperCase() + selectedTask.visitStatus.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Information */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Location Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Address</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">{selectedTask.address}</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Latitude</label>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">{selectedTask.latitude}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Longitude</label>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">{selectedTask.longitude}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Information */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Date Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Date Assigned</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {new Date(selectedTask.createdAt).toLocaleDateString()} {new Date(selectedTask.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Visit Date</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {selectedTask.visitDate ? 
+                        `${new Date(selectedTask.visitDate).toLocaleDateString()} ${new Date(selectedTask.visitDate).toLocaleTimeString()}` : 
+                        'Not visited yet'
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Completion Time</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {selectedTask.completionTime ? 
+                        `${new Date(selectedTask.completionTime).toLocaleDateString()} ${new Date(selectedTask.completionTime).toLocaleTimeString()}` : 
+                        selectedTask.visitStatus === 'completed' && selectedTask.visitDate ? 
+                        `${new Date(selectedTask.visitDate).toLocaleDateString()} ${new Date(selectedTask.visitDate).toLocaleTimeString()}` :
+                        'Not completed yet'
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Last Updated</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {new Date(selectedTask.updatedAt).toLocaleDateString()} {new Date(selectedTask.updatedAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notification Information */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Notification Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Notification Sent</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${selectedTask.notificationSent ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
+                        'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}`}>
+                        {selectedTask.notificationSent ? 'Yes' : 'No'}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Notification Time</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {selectedTask.notificationTime ? 
+                        `${new Date(selectedTask.notificationTime).toLocaleDateString()} ${new Date(selectedTask.notificationTime).toLocaleTimeString()}` : 
+                        'No notification sent'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visit Images */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  Visit Images 
+                  {selectedTask.images && selectedTask.images.length > 0 && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                      ({selectedTask.images.length} image{selectedTask.images.length !== 1 ? 's' : ''})
+                    </span>
+                  )}
+                </h3>
+                {selectedTask.images && selectedTask.images.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Image Gallery */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {selectedTask.images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={`http://localhost:5000${image.url}`}
+                            alt={`${image.type} image`}
+                            className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(`http://localhost:5000${image.url}`, '_blank')}
+                            onError={(e) => {
+                              console.log('Image failed to load:', `http://localhost:5000${image.url}`);
+                              e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                            <FiEye className="text-white opacity-0 group-hover:opacity-100 text-2xl transition-opacity" />
+                          </div>
+                          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs">
+                            {image.type === 'start' ? '🚀 Start' : '✅ Complete'}
+                          </div>
+                          <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs">
+                            {new Date(image.timestamp).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Detailed Image Information */}
+                    <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                      <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3">Image Details</h4>
+                      <div className="space-y-3">
+                        {selectedTask.images.map((image, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-600 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-3 h-3 rounded-full ${image.type === 'start' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                  {image.type === 'start' ? 'Start Image' : 'Completion Image'}
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  {new Date(image.timestamp).toLocaleDateString()} {new Date(image.timestamp).toLocaleTimeString()}
+                                </p>
+                                {image.location && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    📍 {image.location.latitude.toFixed(6)}, {image.location.longitude.toFixed(6)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => window.open(`http://localhost:5000${image.url}`, '_blank')}
+                              className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm"
+                            >
+                              View
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <div className="text-4xl mb-2">📷</div>
+                    <p>No images uploaded for this visit</p>
+                    {selectedTask.images && selectedTask.images.length === 0 && (
+                      <p className="text-xs mt-2">Images array exists but is empty</p>
+                    )}
+                    {!selectedTask.images && (
+                      <p className="text-xs mt-2">No images field in task data</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes and Feedback */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Notes & Feedback</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Admin Notes</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 p-3 rounded border min-h-[60px]">
+                      {selectedTask.adminNotes || 'No admin notes available'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">User Feedback</label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 p-3 rounded border min-h-[60px]">
+                      {selectedTask.userFeedback || 'No user feedback available'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={closeTaskModal}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-300"
+              >
+                Close
               </button>
             </div>
           </div>

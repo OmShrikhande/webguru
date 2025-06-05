@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const User = require('../models/User');
 const Location = require('../models/location');
 const VisitLocation = require('../models/visitLocation');
@@ -322,28 +322,15 @@ exports.getUserVisitLocations = async (req, res) => {
     
     const responseData = { 
       success: true, 
-      locations: visitLocations.map(loc => {
-        // Find completion time from the "complete" type image or use visitDate
-        const completeImage = loc.images?.find(img => img.type === 'complete');
-        const completionTime = completeImage?.timestamp || loc.visitDate;
-        
-        return {
-          id: loc._id,
-          latitude: loc.location.latitude,
-          longitude: loc.location.longitude,
-          address: loc.address,
-          visitStatus: loc.visitStatus,
-          visitDate: loc.visitDate,
-          completionTime: completionTime,
-          images: loc.images || [],
-          notificationSent: loc.notificationSent,
-          notificationTime: loc.notificationTime,
-          adminNotes: loc.adminNotes,
-          userFeedback: loc.userFeedback,
-          createdAt: loc.createdAt,
-          updatedAt: loc.updatedAt
-        };
-      })
+      locations: visitLocations.map(loc => ({
+        id: loc._id,
+        latitude: loc.location.latitude,
+        longitude: loc.location.longitude,
+        address: loc.address,
+        visitStatus: loc.visitStatus,
+        createdAt: loc.createdAt,
+        updatedAt: loc.updatedAt
+      }))
     };
     
     console.log('Sending visit locations response:', responseData);
@@ -434,56 +421,5 @@ exports.addUserVisitLocation = async (req, res) => {
       message: 'Failed to add visit location', 
       error: err.message 
     });
-  }
-};
-
-// Upload image for visit location
-exports.uploadVisitImage = async (req, res) => {
-  try {
-    const visitLocationId = req.params.id;
-    const { imageType, timestamp, location } = req.body;
-    
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image file provided' });
-    }
-    
-    // Find the visit location
-    const visitLocation = await VisitLocation.findById(visitLocationId);
-    if (!visitLocation) {
-      return res.status(404).json({ success: false, message: 'Visit location not found' });
-    }
-    
-    // Create image object
-    const imageData = {
-      url: `/uploads/visit-images/${req.file.filename}`,
-      type: imageType, // 'start' or 'complete'
-      timestamp: timestamp ? new Date(timestamp) : new Date(),
-      location: location ? JSON.parse(location) : null
-    };
-    
-    // Add image to the visit location
-    visitLocation.images.push(imageData);
-    
-    // If this is a completion image, update the completion time
-    if (imageType === 'complete') {
-      visitLocation.visitDate = imageData.timestamp;
-      visitLocation.visitStatus = 'completed';
-    } else if (imageType === 'start') {
-      visitLocation.visitStatus = 'in-progress';
-    }
-    
-    await visitLocation.save();
-    
-    console.log(`Image uploaded for visit location ${visitLocationId}:`, imageData);
-    
-    res.status(200).json({ 
-      success: true, 
-      message: 'Image uploaded successfully',
-      image: imageData
-    });
-    
-  } catch (error) {
-    console.error('Error uploading visit image:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload image', error: error.message });
   }
 };

@@ -108,12 +108,18 @@ exports.getUserLocation = async (req, res) => {
     }
 
     console.log('Fetching location for user ID:', req.params.id);
-    const location = await Location.findOne({ userId: req.params.id })
+    
+    // First get the most recent location for the current position
+    const mostRecentLocation = await Location.findOne({ userId: req.params.id })
       .sort({ timestamp: -1 }); // Get the most recent location
     
-    console.log('Location found in database:', location);
+    // Then get all locations for this user (for the route)
+    const allLocations = await Location.find({ userId: req.params.id })
+      .sort({ timestamp: 1 }); // Get all locations sorted by timestamp (oldest first)
     
-    if (!location) {
+    console.log(`Found ${allLocations.length} locations for user ${req.params.id}`);
+    
+    if (!mostRecentLocation) {
       console.log('No location found for user');
       return res.status(404).json({ 
         success: false, 
@@ -121,16 +127,28 @@ exports.getUserLocation = async (req, res) => {
       });
     }
     
-    const responseData = { 
-      success: true, 
-      location: {
-        latitude: location.location ? location.location.latitude : location.latitude,
-        longitude: location.location ? location.location.longitude : location.longitude,
-        timestamp: location.timestamp,
-      }
+    // Format the most recent location
+    const currentLocation = {
+      latitude: mostRecentLocation.location ? mostRecentLocation.location.latitude : mostRecentLocation.latitude,
+      longitude: mostRecentLocation.location ? mostRecentLocation.location.longitude : mostRecentLocation.longitude,
+      timestamp: mostRecentLocation.timestamp,
     };
     
-    console.log('Sending location data to frontend:', responseData);
+    // Format all locations for the route
+    const routeLocations = allLocations.map(loc => ({
+      latitude: loc.location ? loc.location.latitude : loc.latitude,
+      longitude: loc.location ? loc.location.longitude : loc.longitude,
+      timestamp: loc.timestamp,
+    }));
+    
+    const responseData = { 
+      success: true, 
+      location: currentLocation,
+      allLocations: routeLocations,
+      locationsCount: allLocations.length
+    };
+    
+    console.log(`Sending location data to frontend: Current location and ${routeLocations.length} route points`);
     res.status(200).json(responseData);
   } catch (err) {
     console.error('Error fetching user location:', err);

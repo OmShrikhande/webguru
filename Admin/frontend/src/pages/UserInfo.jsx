@@ -51,6 +51,8 @@ const UserInfo = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [location, setLocation] = useState(null);
+  const [allLocations, setAllLocations] = useState([]);
+  const [routePositions, setRoutePositions] = useState([]);
   const [visitLocations, setVisitLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,7 +73,7 @@ const UserInfo = () => {
   const fetchLocation = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/locations`, {
+      const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/all-locations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('Location API status:', res.status);
@@ -79,14 +81,37 @@ const UserInfo = () => {
       console.log('Location API raw response:', text);
       const data = JSON.parse(text);
       console.log('Location API parsed data:', data);
-      if (data.success) {
-        setLocation(data.location);
+      
+      if (data.success && data.locations && data.locations.length > 0) {
+        // Set the most recent location as the current location
+        const mostRecentLocation = data.locations[0]; // Assuming the first one is the most recent
+        setLocation({
+          latitude: mostRecentLocation.location.latitude,
+          longitude: mostRecentLocation.location.longitude,
+          timestamp: mostRecentLocation.timestamp
+        });
+        
+        // Store all locations
+        setAllLocations(data.locations);
+        
+        // Extract coordinates for the route
+        const coordinates = data.locations.map(loc => [
+          parseFloat(loc.location.latitude),
+          parseFloat(loc.location.longitude)
+        ]).filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]));
+        
+        console.log(`Extracted ${coordinates.length} route coordinates from ${data.locations.length} locations`);
+        setRoutePositions(coordinates);
       } else {
         setLocation(null);
+        setAllLocations([]);
+        setRoutePositions([]);
       }
     } catch (err) {
       console.error('Failed to fetch user location:', err);
       setLocation(null);
+      setAllLocations([]);
+      setRoutePositions([]);
     }
   };
 
@@ -247,8 +272,11 @@ const UserInfo = () => {
         setNewLongitude('');
         setNewAddress('');
         
-        // Refresh the visit locations list
-        fetchVisitLocations();
+        // Refresh the visit locations list and location data
+        await Promise.all([
+          fetchVisitLocations(),
+          fetchLocation()
+        ]);
       } else {
         setLocationMessage(`Failed to add location: ${data.message}`);
       }
@@ -350,12 +378,27 @@ const UserInfo = () => {
             <div className="flex-1 flex flex-col gap-8">
               {/* User Location Card */}
               <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
-                <FuturisticText size="xl" variant="primary" className="font-bold mb-4">User Location</FuturisticText>
+                <div className="flex justify-between items-center mb-4">
+                  <FuturisticText size="xl" variant="primary" className="font-bold">User Location</FuturisticText>
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      await fetchLocation();
+                      setLoading(false);
+                    }}
+                    className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-800 dark:hover:bg-indigo-700 text-indigo-700 dark:text-indigo-200 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <AiOutlineReload className="text-lg" /> Refresh
+                  </button>
+                </div>
                 <div className="rounded-xl overflow-hidden border border-indigo-200 dark:border-indigo-700 shadow" style={{ height: 320, width: "100%" }}>
                   {location ? (
                     <UserMap
                       latitude={location.latitude}
                       longitude={location.longitude}
+                      routePositions={routePositions}
+                      locationData={allLocations}
+                      loading={loading}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -363,6 +406,21 @@ const UserInfo = () => {
                     </div>
                   )}
                 </div>
+                
+                {/* Debug information */}
+                {allLocations.length > 0 && (
+                  <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
+                    <div className="font-semibold mb-1">Debug Info:</div>
+                    <div>Total locations: {allLocations.length}</div>
+                    <div>Route points: {routePositions.length}</div>
+                    {routePositions.length > 0 && (
+                      <div className="mt-1">
+                        <div>First point: [{routePositions[0][0]}, {routePositions[0][1]}]</div>
+                        <div>Last point: [{routePositions[routePositions.length-1][0]}, {routePositions[routePositions.length-1][1]}]</div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Add Location Form */}
                 <div className="mt-6 p-5 bg-indigo-50 dark:bg-gray-800 rounded-xl border border-indigo-100 dark:border-gray-700">
                   <FuturisticText size="lg" variant="primary" className="font-semibold mb-3">Add Location for User to Visit</FuturisticText>

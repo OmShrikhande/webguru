@@ -6,6 +6,7 @@ const adminRoutes = require('./routes/adminRoutes.js');
 const userRoutes = require('./routes/userRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes.js');
 const attendanceRoutes = require('./routes/attendanceRoutes.js');
+const visitLocationRoutes = require('./routes/visitLocation');
 
 // Import models to ensure they're registered
 require('./models/location');
@@ -24,6 +25,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', attendanceRoutes);
+app.use('/api', visitLocationRoutes);
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,

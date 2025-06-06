@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FiMail, FiPhone, FiMapPin, FiCalendar, FiUserCheck, FiLock, FiUserX, FiEye, FiX
+  FiMail, FiPhone, FiMapPin, FiCalendar, FiUserCheck, FiLock, FiUserX, FiEye, FiX, FiEdit, FiTrash
 } from 'react-icons/fi';
 import { MdBadge, MdFingerprint } from 'react-icons/md';
 import { AiOutlineRollback, AiOutlineReload } from 'react-icons/ai';
@@ -311,6 +311,30 @@ const UserInfo = () => {
     setShowTaskModal(false);
   };
 
+  const handleEditTask = (task) => {
+    // TODO: Open edit modal or form for the task
+    alert('Edit functionality coming soon!');
+  };
+
+  const handleDeleteTask = async (id) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`http://localhost:5000/api/visit-location/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          await fetchVisitLocations(); // Refresh the table after deletion
+        } else {
+          alert('Failed to delete task');
+        }
+      } catch (err) {
+        alert('Failed to delete task');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <FuturisticBackground variant="users">
@@ -585,6 +609,14 @@ const UserInfo = () => {
                                     {loc.images.length}
                                   </div>
                                 )}
+                                <button onClick={() => handleEditTask(loc)} className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200">
+                                  <FiEdit className="text-sm" />
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDeleteTask(loc._id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200">
+                                  <FiTrash className="text-sm" />
+                                  Delete
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -667,14 +699,22 @@ const UserInfo = () => {
             <div className="space-y-6">
               {/* Basic Information */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Basic Information</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  Basic Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Task ID</label>
-                    <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">{selectedTask.id}</p>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Task ID
+                    </label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">
+                      {selectedTask.id}
+                    </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Status</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Status
+                    </label>
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                       ${selectedTask.visitStatus === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
                         selectedTask.visitStatus === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 
@@ -687,20 +727,34 @@ const UserInfo = () => {
 
               {/* Location Information */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Location Information</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  Location Information
+                </h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Address</label>
-                    <p className="text-sm text-gray-800 dark:text-gray-200">{selectedTask.address}</p>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Address
+                    </label>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {selectedTask.address}
+                    </p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Latitude</label>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">{selectedTask.latitude}</p>
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Latitude
+                      </label>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">
+                        {selectedTask.latitude}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Longitude</label>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">{selectedTask.longitude}</p>
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Longitude
+                      </label>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 font-mono">
+                        {selectedTask.longitude}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -708,16 +762,22 @@ const UserInfo = () => {
 
               {/* Date Information */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Date Information</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  Date Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Date Assigned</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Date Assigned
+                    </label>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       {new Date(selectedTask.createdAt).toLocaleDateString()} {new Date(selectedTask.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Visit Date</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Visit Date
+                    </label>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       {selectedTask.visitDate ? 
                         `${new Date(selectedTask.visitDate).toLocaleDateString()} ${new Date(selectedTask.visitDate).toLocaleTimeString()}` : 
@@ -726,7 +786,9 @@ const UserInfo = () => {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Completion Time</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Completion Time
+                    </label>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       {selectedTask.completionTime ? 
                         `${new Date(selectedTask.completionTime).toLocaleDateString()} ${new Date(selectedTask.completionTime).toLocaleTimeString()}` : 
@@ -737,7 +799,9 @@ const UserInfo = () => {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Last Updated</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Last Updated
+                    </label>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       {new Date(selectedTask.updatedAt).toLocaleDateString()} {new Date(selectedTask.updatedAt).toLocaleTimeString()}
                     </p>
@@ -747,10 +811,14 @@ const UserInfo = () => {
 
               {/* Notification Information */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Notification Information</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  Notification Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Notification Sent</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Notification Sent
+                    </label>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                         ${selectedTask.notificationSent ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
@@ -760,7 +828,9 @@ const UserInfo = () => {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Notification Time</label>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Notification Time
+                    </label>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       {selectedTask.notificationTime ? 
                         `${new Date(selectedTask.notificationTime).toLocaleDateString()} ${new Date(selectedTask.notificationTime).toLocaleTimeString()}` : 
@@ -788,12 +858,12 @@ const UserInfo = () => {
                       {selectedTask.images.map((image, index) => (
                         <div key={index} className="relative group">
                           <img
-                            src={`http://localhost:5000${image.url}`}
+                            src={`http://localhost:5000/api/visit-location/${selectedTask._id}/image/${index}`}
                             alt={`${image.type} image`}
                             className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(`http://localhost:5000${image.url}`, '_blank')}
+                            onClick={() => window.open(`http://localhost:5000/api/visit-location/${selectedTask._id}/image/${index}`, '_blank')}
                             onError={(e) => {
-                              console.log('Image failed to load:', `http://localhost:5000${image.url}`);
+                              console.log('Image failed to load:', `http://localhost:5000/api/visit-location/${selectedTask._id}/image/${index}`);
                               e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                             }}
                           />
@@ -847,12 +917,6 @@ const UserInfo = () => {
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <div className="text-4xl mb-2">📷</div>
                     <p>No images uploaded for this visit</p>
-                    {selectedTask.images && selectedTask.images.length === 0 && (
-                      <p className="text-xs mt-2">Images array exists but is empty</p>
-                    )}
-                    {!selectedTask.images && (
-                      <p className="text-xs mt-2">No images field in task data</p>
-                    )}
                   </div>
                 )}
               </div>

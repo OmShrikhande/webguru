@@ -46,7 +46,11 @@ const VisitLocationSchema = new mongoose.Schema({
     default: ''
   },
   images: [{
-    url: {
+    data: {
+      type: Buffer,
+      required: true
+    },
+    contentType: {
       type: String,
       required: true
     },

@@ -6,7 +6,7 @@ const adminRoutes = require('./routes/adminRoutes.js');
 const userRoutes = require('./routes/userRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes.js');
 const attendanceRoutes = require('./routes/attendanceRoutes.js');
-const visitLocationRoutes = require('./routes/visitLocation');
+const visitLocationRoutes = require('./routes/visitLocation.js');
 
 // Import models to ensure they're registered
 require('./models/location');

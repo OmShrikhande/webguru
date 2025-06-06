@@ -70,6 +70,8 @@ const UserInfo = () => {
   const [attendanceLoading, setAttendanceLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTask, setEditTask] = useState(null);
 
   // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
   const fetchLocation = async () => {
@@ -312,11 +314,12 @@ const UserInfo = () => {
   };
 
   const handleEditTask = (task) => {
-    // TODO: Open edit modal or form for the task
-    alert('Edit functionality coming soon!');
+    setEditTask({ ...task }); // clone to avoid direct mutation
+    setShowEditModal(true);
   };
 
   const handleDeleteTask = async (id) => {
+    console.log('Deleting task with ID:', id);
     if (window.confirm('Are you sure you want to delete this task?')) {
       try {
         const token = localStorage.getItem('token');
@@ -603,17 +606,24 @@ const UserInfo = () => {
                                 </button>
                                 {loc.images && loc.images.length > 0 && (
                                   <div className="flex items-center gap-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded-full text-xs">
-                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                                    </svg>
+                                    {/* ...image icon... */}
                                     {loc.images.length}
                                   </div>
                                 )}
-                                <button onClick={() => handleEditTask(loc)} className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200">
-                                  <FiEdit className="text-sm" />
-                                  Edit
-                                </button>
-                                <button onClick={() => handleDeleteTask(loc._id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200">
+                                {/* Only show Edit if status is pending */}
+                                {loc.visitStatus === 'pending' && (
+                                  <button
+                                    onClick={() => handleEditTask(loc)}
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200"
+                                  >
+                                    <FiEdit className="text-sm" />
+                                    Edit
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteTask(loc.id)}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-colors duration-200"
+                                >
                                   <FiTrash className="text-sm" />
                                   Delete
                                 </button>
@@ -858,12 +868,12 @@ const UserInfo = () => {
                       {selectedTask.images.map((image, index) => (
                         <div key={index} className="relative group">
                           <img
-                            src={`http://localhost:5000/api/visit-location/${selectedTask._id}/image/${index}`}
+                            src={`http://localhost:5000/api/visit-location/${selectedTask.id}/image/${index}`}
                             alt={`${image.type} image`}
                             className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(`http://localhost:5000/api/visit-location/${selectedTask._id}/image/${index}`, '_blank')}
+                            onClick={() => window.open(`http://localhost:5000/api/visit-location/${selectedTask.id}/image/${index}`, '_blank')}
                             onError={(e) => {
-                              console.log('Image failed to load:', `http://localhost:5000/api/visit-location/${selectedTask._id}/image/${index}`);
+                              console.log('Image failed to load:', `http://localhost:5000/api/visit-location/${selectedTask.id}/image/${index}`);
                               e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                             }}
                           />
@@ -949,6 +959,91 @@ const UserInfo = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editTask && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Edit Task</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const token = localStorage.getItem('token');
+                try {
+                  const res = await fetch(`http://localhost:5000/api/visit-location/${editTask._id}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(editTask),
+                  });
+                  if (res.ok) {
+                    setShowEditModal(false);
+                    setEditTask(null);
+                    await fetchVisitLocations();
+                  } else {
+                    alert('Failed to update task');
+                  }
+                } catch {
+                  alert('Failed to update task');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium mb-1">Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={editTask.address}
+                  onChange={e => setEditTask({ ...editTask, address: e.target.value })}
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Latitude</label>
+                  <input
+                    type="text"
+                    name="latitude"
+                    value={editTask.latitude}
+                    onChange={e => setEditTask({ ...editTask, latitude: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Longitude</label>
+                  <input
+                    type="text"
+                    name="longitude"
+                    value={editTask.longitude}
+                    onChange={e => setEditTask({ ...editTask, longitude: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

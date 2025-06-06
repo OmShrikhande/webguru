@@ -20,7 +20,7 @@ router.get('/visit-location', async (req, res) => {
 });
 
 // UPDATE
-router.put('/visit-location/:id', async (req, res) => {
+router.put('/visit-location/:_id', async (req, res) => {
   try {
     const updated = await VisitLocation.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updated);
@@ -39,18 +39,17 @@ router.delete('/visit-location/:id', async (req, res) => {
   }
 });
 
-// Serve image buffer by index
-router.get('/visit-location/:id/image/:imgIdx', async (req, res) => {
-  try {
-    const { id, imgIdx } = req.params;
-    const visitLocation = await VisitLocation.findById(id);
-    if (!visitLocation || !visitLocation.images[imgIdx]) return res.status(404).send('Not found');
-    const img = visitLocation.images[imgIdx];
-    res.set('Content-Type', img.contentType);
-    res.send(img.data);
-  } catch (err) {
-    res.status(500).send('Server error');
+// GET image by task ID and image index
+router.get('/visit-location/:id/image/:index', async (req, res) => {
+  const { id, index } = req.params;
+  // Fetch the visit location by id
+  const visit = await VisitLocation.findById(id);
+  if (!visit || !visit.images || !visit.images[index]) {
+    return res.status(404).send('Image not found');
   }
+  const image = visit.images[index];
+  res.set('Content-Type', image.mimetype || 'image/jpeg'); // set correct type
+  res.send(image.data); // or image.data if already a Buffer
 });
 
 module.exports = router;

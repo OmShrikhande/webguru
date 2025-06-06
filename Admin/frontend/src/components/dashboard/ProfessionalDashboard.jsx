@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import SnakeGame from './SnakeGame';
 
 const ProfessionalDashboard = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -271,8 +272,9 @@ const ProfessionalDashboard = ({ children }) => {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Quick Actions Card */}
             <div className="lg:col-span-2">
-              <div className="rounded-xl p-6 shadow-lg bg-white/30 backdrop-blur border border-white/30">
+              <div className="rounded-xl p-6 shadow-lg bg-white/30 backdrop-blur border border-white/30 h-full flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <button
@@ -284,7 +286,6 @@ const ProfessionalDashboard = ({ children }) => {
                     </div>
                     <p className="text-sm font-medium text-gray-950">Add User</p>
                   </button>
-                  
                   <button
                     onClick={() => navigate('/reports')}
                     className="p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-center text-gray-950"
@@ -294,7 +295,6 @@ const ProfessionalDashboard = ({ children }) => {
                     </div>
                     <p className="text-sm font-medium text-gray-950">Reports</p>
                   </button>
-                  
                   <button
                     onClick={() => navigate('/analytics')}
                     className="p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-center"
@@ -304,7 +304,6 @@ const ProfessionalDashboard = ({ children }) => {
                     </div>
                     <p className="text-sm font-medium text-gray-950">Analytics</p>
                   </button>
-                  
                   <button
                     onClick={fetchDashboardData}
                     className="p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-center"
@@ -318,33 +317,9 @@ const ProfessionalDashboard = ({ children }) => {
               </div>
             </div>
 
-            {/* Recent Activities */}
-            <div className="lg:col-span-1">
-              <div className="rounded-xl p-6 shadow-lg bg-white/30 backdrop-blur border border-white/30">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
-                <div className="space-y-3">
-                  {recentActivities.slice(0, 5).map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="bg-green-100 p-2 rounded-full">
-                        <span className="text-sm">👤</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 truncate">
-                          {activity.user?.name || 'User'} joined
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {activity.user?.department || 'Department'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {recentActivities.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      No recent activities
-                    </p>
-                  )}
-                </div>
-              </div>
+            {/* Snake Game Card */}
+            <div>
+              <SnakeGame />
             </div>
           </div>
 

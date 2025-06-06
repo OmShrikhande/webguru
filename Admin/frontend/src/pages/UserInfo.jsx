@@ -72,6 +72,10 @@ const UserInfo = () => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTask, setEditTask] = useState(null);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [filteredRoutePositions, setFilteredRoutePositions] = useState([]);
+  const [isDateFiltered, setIsDateFiltered] = useState(false);
 
   // Function to fetch location data - moved outside useEffect to be accessible from handleAddLocation
   const fetchLocation = async () => {
@@ -117,6 +121,55 @@ const UserInfo = () => {
       setAllLocations([]);
       setRoutePositions([]);
     }
+  };
+
+  // Function to filter locations by date
+  const filterLocationsByDate = (date) => {
+    if (!date || !allLocations.length) {
+      setIsDateFiltered(false);
+      setFilteredRoutePositions([]);
+      return;
+    }
+    
+    const selectedDateObj = new Date(date);
+    selectedDateObj.setHours(0, 0, 0, 0); // Start of day
+    
+    const nextDay = new Date(selectedDateObj);
+    nextDay.setDate(nextDay.getDate() + 1); // End of day (start of next day)
+    
+    // Filter locations that fall within the selected date
+    const filtered = allLocations.filter(loc => {
+      const locDate = new Date(loc.timestamp);
+      return locDate >= selectedDateObj && locDate < nextDay;
+    });
+    
+    if (filtered.length > 0) {
+      // Extract coordinates for the filtered route
+      const filteredCoordinates = filtered.map(loc => [
+        parseFloat(loc.location.latitude),
+        parseFloat(loc.location.longitude)
+      ]).filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]));
+      
+      setFilteredRoutePositions(filteredCoordinates);
+      setIsDateFiltered(true);
+    } else {
+      setFilteredRoutePositions([]);
+      setIsDateFiltered(true); // Still show it's active but with no results
+    }
+  };
+
+  // Format date for input value (YYYY-MM-DD)
+  const formatDateForInput = (date) => {
+    const d = new Date(date);
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${day}`;
+  };
+  
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    return formatDateForInput(today);
   };
 
   // Function to fetch visit locations
@@ -372,10 +425,10 @@ const UserInfo = () => {
   return (
     <FuturisticBackground variant="users">
       <ProfessionalDashboard>
-        <div className="min-h-screen w-full flex flex-col items-center px-4 py-10 transition-all duration-700">
-          <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8">
+        <div className="min-h-screen w-full flex flex-col items-center px-2 py-6 transition-all duration-700">
+          <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 flex-wrap mx-auto">
             {/* Sidebar Profile Card */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col items-center md:w-1/3 border border-indigo-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col items-center md:w-1/3 border border-indigo-100 dark:border-gray-800 min-w-[280px] max-w-full">
               <img
                 src={avatarUrl}
                 alt="Avatar"
@@ -416,28 +469,127 @@ const UserInfo = () => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col gap-8">
+            <div className="flex-1 flex flex-col gap-8 min-w-[300px] max-w-full">
               {/* User Location Card */}
               <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 border border-indigo-100 dark:border-gray-800">
                 <div className="flex justify-between items-center mb-4">
                   <FuturisticText size="xl" variant="primary" className="font-bold">User Location</FuturisticText>
-                  <button
-                    onClick={async () => {
-                      setLoading(true);
-                      await fetchLocation();
-                      setLoading(false);
-                    }}
-                    className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-800 dark:hover:bg-indigo-700 text-indigo-700 dark:text-indigo-200 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
-                  >
-                    <AiOutlineReload className="text-lg" /> Refresh
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowDateModal(true)}
+                      className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-200 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Track by Date
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setLoading(true);
+                        await fetchLocation();
+                        setLoading(false);
+                      }}
+                      className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-800 dark:hover:bg-indigo-700 text-indigo-700 dark:text-indigo-200 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                    >
+                      <AiOutlineReload className="text-lg" /> Refresh
+                    </button>
+                  </div>
                 </div>
+                
+                {/* Date Picker Modal */}
+                {showDateModal && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
+                          Track User Path by Date
+                        </h3>
+                        <button
+                          onClick={() => setShowDateModal(false)}
+                          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Select a date to view the user's movement path for that specific day.
+                      </p>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Select Date
+                        </label>
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          max={getTodayDate()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedDate('');
+                            setIsDateFiltered(false);
+                            setFilteredRoutePositions([]);
+                            setShowDateModal(false);
+                          }}
+                          className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (selectedDate) {
+                              filterLocationsByDate(selectedDate);
+                              setShowDateModal(false);
+                            }
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg shadow transition-colors"
+                        >
+                          Track Path
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Date filter indicator */}
+                {isDateFiltered && (
+                  <div className="mb-4 px-4 py-2 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-100 dark:border-blue-800 flex justify-between items-center">
+                    <div>
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        Showing route for: {selectedDate ? new Date(selectedDate).toLocaleDateString(undefined, {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) : ''}
+                      </span>
+                      {filteredRoutePositions.length === 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          No location data available for this date.
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedDate('');
+                        setIsDateFiltered(false);
+                        setFilteredRoutePositions([]);
+                      }}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
                 <div className="rounded-xl overflow-hidden border border-indigo-200 dark:border-indigo-700 shadow" style={{ height: 320, width: "100%" }}>
                   {location ? (
                     <UserMap
                       latitude={location.latitude}
                       longitude={location.longitude}
-                      routePositions={routePositions}
+                      routePositions={isDateFiltered ? filteredRoutePositions : routePositions}
                       locationData={allLocations}
                       loading={loading}
                     />
@@ -453,12 +605,24 @@ const UserInfo = () => {
                   <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
                     <div className="font-semibold mb-1">Debug Info:</div>
                     <div>Total locations: {allLocations.length}</div>
-                    <div>Route points: {routePositions.length}</div>
-                    {routePositions.length > 0 && (
-                      <div className="mt-1">
-                        <div>First point: [{routePositions[0][0]}, {routePositions[0][1]}]</div>
-                        <div>Last point: [{routePositions[routePositions.length-1][0]}, {routePositions[routePositions.length-1][1]}]</div>
-                      </div>
+                    <div>Route points: {isDateFiltered ? filteredRoutePositions.length : routePositions.length}</div>
+                    {isDateFiltered ? (
+                      <>
+                        <div className="text-blue-600 dark:text-blue-400">Date filter active: {selectedDate}</div>
+                        {filteredRoutePositions.length > 0 && (
+                          <div className="mt-1">
+                            <div>First point: [{filteredRoutePositions[0][0]}, {filteredRoutePositions[0][1]}]</div>
+                            <div>Last point: [{filteredRoutePositions[filteredRoutePositions.length-1][0]}, {filteredRoutePositions[filteredRoutePositions.length-1][1]}]</div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      routePositions.length > 0 && (
+                        <div className="mt-1">
+                          <div>First point: [{routePositions[0][0]}, {routePositions[0][1]}]</div>
+                          <div>Last point: [{routePositions[routePositions.length-1][0]}, {routePositions[routePositions.length-1][1]}]</div>
+                        </div>
+                      )
                     )}
                   </div>
                 )}

@@ -20,6 +20,7 @@ const FocusButton = ({ lat, lng }) => {
   const handleFocus = () => {
     map.setView([lat, lng], 15, { animate: true });
   };
+  
   return (
     <button
       type="button"
@@ -669,6 +670,7 @@ const UserLocationSection = ({ userId }) => {
           <div className="relative">
             <button
               onClick={toggleDatePicker}
+              data-track-path-date
               className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded-lg text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-700 transition-colors flex items-center gap-1"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -679,10 +681,26 @@ const UserLocationSection = ({ userId }) => {
             
             {/* Date picker dropdown */}
             {datePickerOpen && (
-              <div className="absolute right-0 mt-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-indigo-100 dark:border-indigo-800 min-w-[260px]">
-                <div className="mb-2">
+              <div className="absolute right-0 mt-2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-indigo-100 dark:border-indigo-800 min-w-[300px]">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-md font-bold text-indigo-700 dark:text-indigo-300">
+                    Track Path by Date
+                  </h3>
+                  <button
+                    onClick={toggleDatePicker}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Select a date to view the user's movement path for that specific day.
+                </p>
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Select Date to View Route
+                    Select Date
                   </label>
                   <input
                     type="date"
@@ -695,15 +713,21 @@ const UserLocationSection = ({ userId }) => {
                 <div className="flex justify-between">
                   <button
                     onClick={clearDateFilter}
-                    className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                    className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     Clear Filter
                   </button>
                   <button
-                    onClick={toggleDatePicker}
-                    className="px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded hover:bg-indigo-200 dark:hover:bg-indigo-700"
+                    onClick={() => {
+                      if (selectedDate) {
+                        filterLocationsByDate(selectedDate);
+                        setShowRoute(true); // Ensure route is visible
+                        toggleDatePicker(); // Close the modal
+                      }
+                    }}
+                    className="px-3 py-1.5 text-sm bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded shadow transition-colors"
                   >
-                    Close
+                    Track Path
                   </button>
                 </div>
               </div>

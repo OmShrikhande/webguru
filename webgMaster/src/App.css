@@ -1,0 +1,77 @@
+/* Animated particles */
+.particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Glowing elements */
+.glow {
+  box-shadow: 0 0 15px rgba(30, 136, 229, 0.5);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow:hover {
+  box-shadow: 0 0 25px rgba(30, 136, 229, 0.8);
+}
+
+/* Futuristic badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(30, 136, 229, 0.1);
+  border: 1px solid rgba(30, 136, 229, 0.2);
+  color: rgba(30, 136, 229, 0.9);
+}
+
+/* Animated background */
+.animated-bg {
+  background: linear-gradient(-45deg, #0a1929, #0d2b46, #1a3a5f, #1e4976);
+  background-size: 400% 400%;
+  animation: gradientBg 15s ease infinite;
+}
+
+@keyframes gradientBg {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Card hover effect */
+.hover-card {
+  transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Dashboard grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  width: 100%;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(25, 35, 60, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(100, 180, 255, 0.1);
+  border-radius: 12px;
+}

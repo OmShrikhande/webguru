@@ -1,18 +1,19 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+require('dotenv').config();
 const cors = require('cors');
 const adminRoutes = require('./routes/adminRoutes.js');
 const userRoutes = require('./routes/userRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes.js');
 const attendanceRoutes = require('./routes/attendanceRoutes.js');
 const visitLocationRoutes = require('./routes/visitLocation.js');
+const masterRoutes = require('./routes/masterRoutes.js');
 
 // Import models to ensure they're registered
 require('./models/location');
 require('./models/Attendance');
+require('./models/Master');
 
-dotenv.config();
 const app = express();
 
 app.use(cors());
@@ -21,6 +22,10 @@ app.use(express.json());
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
+// Master routes
+app.use('/api/master', masterRoutes);
+
+// Admin routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);

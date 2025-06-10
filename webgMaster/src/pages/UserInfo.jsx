@@ -381,25 +381,40 @@ const UserInfo = () => {
       animate="visible"
       variants={containerVariants}
     >
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-        <IconButton 
-          onClick={() => navigate('/userdata')} 
-          sx={{ mr: 2, color: 'rgba(255, 255, 255, 0.7)' }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <motion.div variants={itemVariants}>
-          <Typography 
-            variant="h4" 
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <IconButton 
+            onClick={() => navigate('/userdata')} 
             sx={{ 
-              fontWeight: 700, 
-              color: '#fff',
-              background: 'linear-gradient(90deg, #fff, #90caf9)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              mr: 2, 
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&:hover': { 
+                bgcolor: 'rgba(30, 136, 229, 0.08)',
+                color: '#fff'
+              },
+              transition: 'all 0.2s ease'
             }}
           >
-            User Profile
+            <ArrowBackIcon />
+          </IconButton>
+          <motion.div variants={itemVariants}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#fff',
+                background: 'linear-gradient(90deg, #fff, #90caf9)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              User Profile
+            </Typography>
+          </motion.div>
+        </Box>
+        <motion.div variants={itemVariants}>
+          <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', ml: 7 }}>
+            View and manage detailed information for {user?.name || 'this user'}
           </Typography>
         </motion.div>
       </Box>
@@ -414,30 +429,56 @@ const UserInfo = () => {
               border: '1px solid rgba(100, 180, 255, 0.1)',
               backdropFilter: 'blur(10px)',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%'
+              height: '100%',
+              overflow: 'hidden'
             }}>
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-                  <Avatar 
-                    sx={{ 
-                      width: 100, 
-                      height: 100, 
-                      bgcolor: theme.palette.primary.main,
-                      fontSize: '2.5rem',
-                      mb: 2,
-                      border: '4px solid',
-                      borderColor: alpha(theme.palette.primary.main, 0.3)
-                    }}
-                  >
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </Avatar>
-                  <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600, textAlign: 'center' }}>
-                    {user?.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1, textAlign: 'center' }}>
-                    {user?.email}
-                  </Typography>
+              <Box sx={{ 
+                p: 3, 
+                background: 'linear-gradient(135deg, rgba(30, 136, 229, 0.3), rgba(25, 35, 60, 0))',
+                borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <Box 
+                  sx={{ 
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    left: 0,
+                    height: '100%',
+                    opacity: 0.1,
+                    backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(100, 180, 255, 0.2) 0%, transparent 50%)',
+                    zIndex: 0
+                  }}
+                />
+                
+                <Avatar 
+                  sx={{ 
+                    width: 100, 
+                    height: 100, 
+                    bgcolor: theme.palette.primary.main,
+                    fontSize: '2.5rem',
+                    mb: 2,
+                    border: '4px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.3),
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                    zIndex: 1
+                  }}
+                >
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
+                <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600, textAlign: 'center', zIndex: 1 }}>
+                  {user?.name}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1.5, textAlign: 'center', zIndex: 1 }}>
+                  {user?.email}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, zIndex: 1 }}>
                   <Chip 
+                    icon={user?.is_active ? <LockOpenIcon fontSize="small" /> : <LockIcon fontSize="small" />}
                     label={user?.is_active ? 'Active' : 'Inactive'} 
                     size="small"
                     sx={{
@@ -452,18 +493,68 @@ const UserInfo = () => {
                       borderColor: user?.is_active 
                         ? alpha(theme.palette.success.main, 0.3)
                         : alpha(theme.palette.error.main, 0.3),
+                      '& .MuiChip-icon': {
+                        color: user?.is_active 
+                          ? theme.palette.success.main
+                          : theme.palette.error.main,
+                      }
                     }}
                   />
+                  {user?.department && (
+                    <Chip 
+                      icon={<WorkIcon fontSize="small" />}
+                      label={user?.department} 
+                      size="small"
+                      sx={{
+                        bgcolor: alpha(theme.palette.info.main, 0.2),
+                        color: theme.palette.info.main,
+                        fontWeight: 500,
+                        border: '1px solid',
+                        borderColor: alpha(theme.palette.info.main, 0.3),
+                        '& .MuiChip-icon': {
+                          color: theme.palette.info.main,
+                        }
+                      }}
+                    />
+                  )}
                 </Box>
+              </Box>
 
-                <Divider sx={{ my: 3, borderColor: 'rgba(100, 180, 255, 0.1)' }} />
-
-                <Box sx={{ mt: 2 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="subtitle2" sx={{ 
+                  color: theme.palette.primary.main, 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  display: 'flex', 
+                  alignItems: 'center' 
+                }}>
+                  <PersonIcon sx={{ fontSize: 18, mr: 1 }} />
+                  Personal Information
+                </Typography>
+                
+                <Box sx={{ mb: 3 }}>
                   <InfoItem icon={<EmailIcon />} label="Email" value={user?.email} />
                   <InfoItem icon={<PhoneIcon />} label="Mobile" value={user?.mobile} />
                   <InfoItem icon={<HomeIcon />} label="Address" value={user?.address} />
                   <InfoItem icon={<WorkIcon />} label="Department" value={user?.department} />
                   <InfoItem icon={<CalendarIcon />} label="Joining Date" value={formatDate(user?.joiningDate)} />
+                </Box>
+                
+                <Typography variant="subtitle2" sx={{ 
+                  color: theme.palette.primary.main, 
+                  mb: 2, 
+                  mt: 3,
+                  fontWeight: 600, 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  borderTop: '1px solid rgba(100, 180, 255, 0.1)',
+                  pt: 2
+                }}>
+                  <FingerprintIcon sx={{ fontSize: 18, mr: 1 }} />
+                  Identification
+                </Typography>
+                
+                <Box sx={{ mb: 3 }}>
                   <InfoItem icon={<FingerprintIcon />} label="Aadhar" value={user?.adhar} />
                   <InfoItem icon={<BadgeIcon />} label="PAN" value={user?.pan} />
                   <InfoItem icon={<LockIcon />} label="Password" value={maskPassword(user?.password)} />
@@ -474,13 +565,22 @@ const UserInfo = () => {
                     variant="contained"
                     fullWidth
                     onClick={() => setResetPasswordOpen(true)}
+                    startIcon={<LockOpenIcon />}
                     sx={{
                       bgcolor: alpha(theme.palette.warning.main, 0.8),
                       color: '#fff',
                       '&:hover': {
                         bgcolor: theme.palette.warning.main,
                       },
-                      mb: 2
+                      mb: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.warning.main, 0.3)}`,
+                      transition: 'all 0.2s ease',
+                      '&:active': {
+                        boxShadow: `0 2px 6px ${alpha(theme.palette.warning.main, 0.4)}`,
+                        transform: 'translateY(1px)'
+                      }
                     }}
                   >
                     Reset Password
@@ -493,6 +593,8 @@ const UserInfo = () => {
                     sx={{
                       borderColor: 'rgba(255, 255, 255, 0.2)',
                       color: 'rgba(255, 255, 255, 0.7)',
+                      borderRadius: 2,
+                      py: 1,
                       '&:hover': {
                         borderColor: 'rgba(255, 255, 255, 0.4)',
                         bgcolor: 'rgba(255, 255, 255, 0.05)'
@@ -516,26 +618,66 @@ const UserInfo = () => {
               border: '1px solid rgba(100, 180, 255, 0.1)',
               backdropFilter: 'blur(10px)',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden'
             }}>
-              <Box sx={{ borderBottom: 1, borderColor: 'rgba(100, 180, 255, 0.1)' }}>
+              <Box sx={{ 
+                borderBottom: 1, 
+                borderColor: 'rgba(100, 180, 255, 0.1)', 
+                bgcolor: 'rgba(0, 0, 0, 0.2)',
+                px: 2
+              }}>
                 <Tabs 
                   value={tabValue} 
                   onChange={handleTabChange}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  allowScrollButtonsMobile
                   sx={{
                     '& .MuiTabs-indicator': {
                       backgroundColor: theme.palette.primary.main,
+                      height: 3,
+                      borderTopLeftRadius: 3,
+                      borderTopRightRadius: 3,
                     },
                     '& .MuiTab-root': {
                       color: 'rgba(255, 255, 255, 0.5)',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      minHeight: 48,
+                      textTransform: 'none',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        bgcolor: 'rgba(30, 136, 229, 0.08)',
+                      },
                       '&.Mui-selected': {
                         color: theme.palette.primary.main,
+                        fontWeight: 600,
+                      },
+                    },
+                    '& .MuiTabs-scrollButtons': {
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      '&.Mui-disabled': {
+                        opacity: 0.3,
                       },
                     },
                   }}
                 >
-                  <Tab label="Overview" />
-                  <Tab label="Location History" />
-                  <Tab label="Attendance" />
+                  <Tab 
+                    label="Overview" 
+                    icon={<PersonIcon fontSize="small" />} 
+                    iconPosition="start"
+                  />
+                  <Tab 
+                    label="Location History" 
+                    icon={<LocationOnIcon fontSize="small" />} 
+                    iconPosition="start"
+                  />
+                  <Tab 
+                    label="Attendance" 
+                    icon={<CalendarIcon fontSize="small" />} 
+                    iconPosition="start"
+                  />
                 </Tabs>
               </Box>
 

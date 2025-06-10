@@ -208,18 +208,102 @@ const MasterDashboard = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.1,
+        duration: 0.8,
+        ease: "easeOut"
+      }
+    },
+    exit: {
+      opacity: 0,
+      transition: {
+        staggerChildren: 0.05,
+        staggerDirection: -1,
+        duration: 0.5
       }
     }
   };
   
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 30, opacity: 0, scale: 0.95 },
     visible: {
       y: 0,
       opacity: 1,
+      scale: 1,
       transition: {
-        duration: 0.5
+        duration: 0.6,
+        ease: [0.25, 0.1, 0.25, 1.0] // Custom easing
+      }
+    },
+    hover: {
+      scale: 1.03,
+      boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    },
+    tap: {
+      scale: 0.98,
+      transition: {
+        duration: 0.15
+      }
+    },
+    exit: {
+      y: -20,
+      opacity: 0,
+      transition: {
+        duration: 0.4
+      }
+    }
+  };
+  
+  // Card animations
+  const cardVariants = {
+    hidden: { y: 20, opacity: 0, scale: 0.95 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        type: "spring",
+        stiffness: 200,
+        damping: 15
+      }
+    },
+    hover: {
+      y: -5,
+      scale: 1.02,
+      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
+      transition: {
+        duration: 0.3
+      }
+    }
+  };
+  
+  // Chart animation
+  const chartVariants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        delay: 0.4,
+        duration: 0.7,
+        ease: "easeOut"
+      }
+    }
+  };
+  
+  // Text animation
+  const textVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
       }
     }
   };
@@ -227,16 +311,59 @@ const MasterDashboard = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={60} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            transition: {
+              duration: 0.5,
+              ease: "easeOut"
+            }
+          }}
+          exit={{ opacity: 0, scale: 0.5 }}
+        >
+          <motion.div
+            animate={{ 
+              rotate: 360,
+              transition: { 
+                duration: 1.5, 
+                repeat: Infinity, 
+                ease: "linear" 
+              }
+            }}
+          >
+            <CircularProgress size={60} />
+          </motion.div>
+        </motion.div>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 3 }}>
-        {error}
-      </Alert>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 0.4,
+            ease: "easeOut"
+          }
+        }}
+        exit={{ opacity: 0, y: -20 }}
+      >
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: 3,
+            boxShadow: '0 4px 15px rgba(244, 67, 54, 0.3)'
+          }}
+        >
+          {error}
+        </Alert>
+      </motion.div>
     );
   }
 
@@ -244,10 +371,15 @@ const MasterDashboard = () => {
     <motion.div
       initial="hidden"
       animate="visible"
+      exit="exit"
       variants={containerVariants}
     >
       <Box sx={{ mb: 4 }}>
-        <motion.div variants={itemVariants}>
+        <motion.div 
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <Typography 
             variant="h4" 
             sx={{ 
@@ -259,10 +391,24 @@ const MasterDashboard = () => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Master Dashboard
+            <motion.span
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ 
+                opacity: 1, 
+                x: 0,
+                transition: { delay: 0.2, duration: 0.6 }
+              }}
+            >
+              Master Dashboard
+            </motion.span>
           </Typography>
         </motion.div>
-        <motion.div variants={itemVariants}>
+        <motion.div 
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+        >
           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
             Overview of your entire system, including admins, users, and attendance
           </Typography>
@@ -272,7 +418,13 @@ const MasterDashboard = () => {
       <Grid container spacing={3}>
         {/* Stats Cards - First Row */}
         <Grid item xs={12} sm={6} md={3}>
-          <motion.div variants={itemVariants}>
+          <motion.div 
+            variants={cardVariants}
+            whileHover="hover"
+            whileTap="tap"
+            initial="hidden"
+            animate="visible"
+          >
             <Card sx={{ 
               bgcolor: 'rgba(25, 35, 60, 0.6)',
               borderRadius: 2,
@@ -282,32 +434,75 @@ const MasterDashboard = () => {
               height: '100%',
               position: 'relative',
               overflow: 'hidden',
+              transition: 'all 0.3s ease',
             }}>
               <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box 
-                  sx={{ 
-                    position: 'absolute',
-                    top: -20,
-                    right: -20,
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    bgcolor: alpha('#1e88e5', 0.1),
-                    zIndex: 0,
-                  }} 
-                />
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" gutterBottom>
-                  Total Admins
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AdminPanelSettingsIcon sx={{ fontSize: 32, color: '#42a5f5', mr: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 600, color: '#fff' }}>
-                    {stats.totalCounts.admins}
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ 
+                    scale: 1, 
+                    opacity: 1,
+                    transition: { delay: 0.2, duration: 0.5 }
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      position: 'absolute',
+                      top: -20,
+                      right: -20,
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      bgcolor: alpha('#1e88e5', 0.1),
+                      zIndex: 0,
+                    }} 
+                  />
+                </motion.div>
+                <motion.div variants={textVariants}>
+                  <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" gutterBottom>
+                    Total Admins
                   </Typography>
+                </motion.div>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <motion.div
+                    initial={{ rotate: -10, scale: 0.8, opacity: 0 }}
+                    animate={{ 
+                      rotate: 0, 
+                      scale: 1, 
+                      opacity: 1,
+                      transition: { delay: 0.3, duration: 0.5 }
+                    }}
+                    whileHover={{ 
+                      rotate: [0, -10, 10, -5, 5, 0],
+                      transition: { duration: 0.5 }
+                    }}
+                  >
+                    <AdminPanelSettingsIcon sx={{ fontSize: 32, color: '#42a5f5', mr: 1 }} />
+                  </motion.div>
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ 
+                      y: 0, 
+                      opacity: 1,
+                      transition: { delay: 0.4, duration: 0.6 }
+                    }}
+                  >
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: '#fff' }}>
+                      {stats.totalCounts.admins}
+                    </Typography>
+                  </motion.div>
                 </Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
-                  System administrators
-                </Typography>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ 
+                    opacity: 1,
+                    transition: { delay: 0.5, duration: 0.5 }
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
+                    System administrators
+                  </Typography>
+                </motion.div>
               </CardContent>
             </Card>
           </motion.div>
@@ -633,7 +828,15 @@ const MasterDashboard = () => {
         
         {/* Weekly Attendance Chart */}
         <Grid item xs={12} md={8}>
-          <motion.div variants={itemVariants}>
+          <motion.div 
+            variants={chartVariants}
+            initial="hidden"
+            animate="visible"
+            whileHover={{ 
+              scale: 1.01,
+              transition: { duration: 0.3 }
+            }}
+          >
             <Card sx={{ 
               bgcolor: 'rgba(25, 35, 60, 0.6)',
               borderRadius: 2,
@@ -641,27 +844,62 @@ const MasterDashboard = () => {
               backdropFilter: 'blur(10px)',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
               height: '100%',
+              transition: 'all 0.3s ease',
             }}>
               <CardHeader 
                 title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Weekly Attendance Trends
-                  </Typography>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ 
+                      opacity: 1, 
+                      x: 0,
+                      transition: { delay: 0.2, duration: 0.5 }
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ color: '#fff' }}>
+                      Weekly Attendance Trends
+                    </Typography>
+                  </motion.div>
                 }
                 sx={{ pb: 0 }}
               />
               <CardContent>
-                <Box sx={{ height: 300, p: 1 }}>
-                  {stats.weeklyAttendance.length > 0 ? (
-                    <Line data={chartData} options={chartOptions} />
-                  ) : (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                      <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        No attendance data available for the past week
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { delay: 0.4, duration: 0.7 }
+                  }}
+                >
+                  <Box sx={{ height: 300, p: 1 }}>
+                    {stats.weeklyAttendance.length > 0 ? (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ 
+                          opacity: 1,
+                          transition: { delay: 0.5, duration: 0.8 }
+                        }}
+                      >
+                        <Line data={chartData} options={chartOptions} />
+                      </motion.div>
+                    ) : (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ 
+                            opacity: 1,
+                            transition: { delay: 0.3, duration: 0.5 }
+                          }}
+                        >
+                          <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            No attendance data available for the past week
+                          </Typography>
+                        </motion.div>
+                      </Box>
+                    )}
+                  </Box>
+                </motion.div>
               </CardContent>
             </Card>
           </motion.div>
@@ -669,7 +907,12 @@ const MasterDashboard = () => {
         
         {/* Recent Activities */}
         <Grid item xs={12} md={4}>
-          <motion.div variants={itemVariants}>
+          <motion.div 
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            whileHover="hover"
+          >
             <Card sx={{ 
               bgcolor: 'rgba(25, 35, 60, 0.6)',
               borderRadius: 2,
@@ -677,12 +920,22 @@ const MasterDashboard = () => {
               backdropFilter: 'blur(10px)',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
               height: '100%',
+              transition: 'all 0.3s ease',
             }}>
               <CardHeader 
                 title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Recent Activities
-                  </Typography>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ 
+                      opacity: 1, 
+                      x: 0,
+                      transition: { delay: 0.3, duration: 0.5 }
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ color: '#fff' }}>
+                      Recent Activities
+                    </Typography>
+                  </motion.div>
                 }
                 sx={{ pb: 0 }}
               />
@@ -690,55 +943,88 @@ const MasterDashboard = () => {
                 <List sx={{ p: 0 }}>
                   {stats.recentActivities.length > 0 ? (
                     stats.recentActivities.map((activity, index) => (
-                      <React.Fragment key={activity.id}>
-                        <ListItem alignItems="flex-start" sx={{ px: 1 }}>
-                          <ListItemAvatar>
-                            <Avatar sx={{ 
-                              bgcolor: activity.type === 'admin_login' 
-                                ? alpha('#1e88e5', 0.2) 
-                                : activity.type === 'attendance' 
-                                  ? alpha('#4caf50', 0.2) 
-                                  : alpha('#ff9800', 0.2),
-                              color: activity.type === 'admin_login' 
-                                ? '#1e88e5' 
-                                : activity.type === 'attendance' 
-                                  ? '#4caf50' 
-                                  : '#ff9800'
-                            }}>
-                              {activity.type === 'admin_login' 
-                                ? <AdminPanelSettingsIcon /> 
-                                : activity.type === 'attendance' 
-                                  ? <EventAvailableIcon /> 
-                                  : <LocationOnIcon />}
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText
-                            primary={
-                              <Typography variant="body1" sx={{ color: '#fff' }}>
-                                {activity.user}
-                              </Typography>
-                            }
-                            secondary={
-                              <>
-                                <Typography variant="body2" component="span" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                                  {activity.action}
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ 
+                          opacity: 1, 
+                          x: 0,
+                          transition: { 
+                            delay: 0.2 + (index * 0.1),
+                            duration: 0.5
+                          }
+                        }}
+                        whileHover={{ 
+                          scale: 1.02, 
+                          x: 5,
+                          transition: { duration: 0.2 }
+                        }}
+                      >
+                        <React.Fragment>
+                          <ListItem alignItems="flex-start" sx={{ px: 1 }}>
+                            <ListItemAvatar>
+                              <motion.div
+                                whileHover={{ 
+                                  rotate: 360,
+                                  transition: { duration: 0.5 }
+                                }}
+                              >
+                                <Avatar sx={{ 
+                                  bgcolor: activity.type === 'admin_login' 
+                                    ? alpha('#1e88e5', 0.2) 
+                                    : activity.type === 'attendance' 
+                                      ? alpha('#4caf50', 0.2) 
+                                      : alpha('#ff9800', 0.2),
+                                  color: activity.type === 'admin_login' 
+                                    ? '#1e88e5' 
+                                    : activity.type === 'attendance' 
+                                      ? '#4caf50' 
+                                      : '#ff9800'
+                                }}>
+                                  {activity.type === 'admin_login' 
+                                    ? <AdminPanelSettingsIcon /> 
+                                    : activity.type === 'attendance' 
+                                      ? <EventAvailableIcon /> 
+                                      : <LocationOnIcon />}
+                                </Avatar>
+                              </motion.div>
+                            </ListItemAvatar>
+                            <ListItemText
+                              primary={
+                                <Typography variant="body1" sx={{ color: '#fff' }}>
+                                  {activity.user}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                                  {new Date(activity.time).toLocaleString()}
-                                </Typography>
-                              </>
-                            }
-                          />
-                        </ListItem>
-                        {index < stats.recentActivities.length - 1 && (
-                          <Divider variant="inset" component="li" sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                        )}
-                      </React.Fragment>
+                              }
+                              secondary={
+                                <>
+                                  <Typography variant="body2" component="span" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                                    {activity.action}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                    {new Date(activity.time).toLocaleString()}
+                                  </Typography>
+                                </>
+                              }
+                            />
+                          </ListItem>
+                          {index < stats.recentActivities.length - 1 && (
+                            <Divider variant="inset" component="li" sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+                          )}
+                        </React.Fragment>
+                      </motion.div>
                     ))
                   ) : (
-                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', py: 4 }}>
-                      No recent activities
-                    </Typography>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ 
+                        opacity: 1,
+                        transition: { delay: 0.4, duration: 0.5 }
+                      }}
+                    >
+                      <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', py: 4 }}>
+                        No recent activities
+                      </Typography>
+                    </motion.div>
                   )}
                 </List>
               </CardContent>

@@ -4,7 +4,6 @@ import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import MasterDashboard from './pages/MasterDashboard';
-import Users from './pages/Users';
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import UserData from './pages/UserData';
@@ -80,7 +79,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/users',
-        element: <Users />
+        element: <UserData />
       },
       {
         path: '/admin',

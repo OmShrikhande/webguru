@@ -66,7 +66,10 @@ export default function UserData() {
   // Filter state
   const [filters, setFilters] = useState({
     department: '',
-    status: ''
+    status: '',
+    userType: '',
+    createdDate: '',
+    lastActive: ''
   });
 
   // Dialog states
@@ -143,10 +146,18 @@ export default function UserData() {
 
   // Handle filter changes
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // If selecting the same value, clear the filter
+    if (filters[field] === value && field !== 'department') {
+      setFilters(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
     setPage(0); // Reset to first page when filters change
   };
 
@@ -261,18 +272,34 @@ export default function UserData() {
 
   // Filter users based on search term and filters
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+    // Advanced search across multiple fields
+    const matchesSearch = searchTerm === '' || 
       (user?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user?.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user?.mobile || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user?.department || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (user?.department || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user?.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user?.employee_id || '').toLowerCase().includes(searchTerm.toLowerCase());
     
+    // Department filter
     const matchesDepartment = !filters.department || user?.department === filters.department;
+    
+    // Status filter
     const matchesStatus = !filters.status || 
       (filters.status === 'active' && user?.is_active) ||
       (filters.status === 'inactive' && !user?.is_active);
     
-    return matchesSearch && matchesDepartment && matchesStatus;
+    // User type filter (admin vs regular user)
+    const matchesUserType = !filters.userType || 
+      (filters.userType === 'admin' && isAdminUser(user)) ||
+      (filters.userType === 'regular' && !isAdminUser(user));
+    
+    // Date filters could be implemented here if needed
+    const matchesCreatedDate = !filters.createdDate || true; // Placeholder for date filtering
+    const matchesLastActive = !filters.lastActive || true; // Placeholder for last active filtering
+    
+    return matchesSearch && matchesDepartment && matchesStatus && matchesUserType && 
+           matchesCreatedDate && matchesLastActive;
   });
 
   // Get unique departments for filter dropdown
@@ -293,6 +320,11 @@ export default function UserData() {
       console.error('Error formatting date:', err);
       return 'Invalid Date';
     }
+  };
+  
+  // Check if user is admin
+  const isAdminUser = (user) => {
+    return user?.role === 'admin' || user?.isAdmin === true || user?.userType === 'admin';
   };
 
   return (
@@ -335,163 +367,416 @@ export default function UserData() {
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
             }}>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <TextField
-                    placeholder="Search users..."
-                    variant="outlined"
-                    size="small"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      width: 300,
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'rgba(0, 0, 0, 0.2)',
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(100, 180, 255, 0.3)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#1e88e5',
-                        },
-                        '& .MuiOutlinedInput-input': {
-                          color: '#fff',
-                        }
-                      },
-                    }}
-                  />
-                  <Box>
-                    <Button
-                      startIcon={<RefreshIcon />}
-                      onClick={fetchUsers}
-                      sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        '&:hover': { color: '#fff' },
-                        mr: 1
-                      }}
-                    >
-                      Refresh
-                    </Button>
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      sx={{
-                        bgcolor: '#1e88e5',
-                        '&:hover': { bgcolor: '#1976d2' },
-                        borderRadius: 2
-                      }}
-                    >
-                      Add User
-                    </Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', mb: 3 }}>
+                  {/* Search, filters and action buttons row */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', mb: 2 }}>
+                    {/* Search and action buttons */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <TextField
+                          placeholder="Search users..."
+                          variant="outlined"
+                          size="small"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{
+                            width: 300,
+                            mr: 1,
+                            '& .MuiOutlinedInput-root': {
+                              bgcolor: 'rgba(0, 0, 0, 0.2)',
+                              '&:hover .MuiOutlinedInput-notchedOutline': {
+                                borderColor: 'rgba(100, 180, 255, 0.3)',
+                              },
+                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                borderColor: '#1e88e5',
+                              },
+                              '& .MuiOutlinedInput-input': {
+                                color: '#fff',
+                              }
+                            },
+                          }}
+                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                          <Tooltip title="Filter by Department">
+                            <FormControl size="small" sx={{ minWidth: 130 }}>
+                              <Select
+                                displayEmpty
+                                value={filters.department}
+                                onChange={(e) => handleFilterChange('department', e.target.value)}
+                                renderValue={(selected) => selected ? selected : "Department"}
+                                MenuProps={{
+                                  PaperProps: {
+                                    sx: {
+                                      bgcolor: 'rgba(25, 35, 60, 0.95)',
+                                      color: '#fff',
+                                      '& .MuiMenuItem-root:hover': {
+                                        bgcolor: 'rgba(100, 180, 255, 0.1)',
+                                      },
+                                    }
+                                  }
+                                }}
+                                sx={{
+                                  color: '#fff',
+                                  bgcolor: filters.department ? 'rgba(100, 180, 255, 0.15)' : 'rgba(0, 0, 0, 0.2)',
+                                  height: '40px',
+                                  '.MuiOutlinedInput-notchedOutline': {
+                                    borderColor: filters.department ? 'rgba(100, 180, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(100, 180, 255, 0.3)',
+                                  },
+                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#1e88e5',
+                                  },
+                                  '.MuiSvgIcon-root': {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                  }
+                                }}
+                              >
+                                <MenuItem value="">All Departments</MenuItem>
+                                {departments.map((dept) => (
+                                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Tooltip>
+
+                          <Tooltip title="Filter by User Status">
+                            <FormControl size="small" sx={{ ml: 1, minWidth: 120 }}>
+                              <Select
+                                displayEmpty
+                                value={filters.status}
+                                onChange={(e) => handleFilterChange('status', e.target.value)}
+                                renderValue={(selected) => selected ? (selected === 'active' ? 'Active' : 'Inactive') : "Status"}
+                                MenuProps={{
+                                  PaperProps: {
+                                    sx: {
+                                      bgcolor: 'rgba(25, 35, 60, 0.95)',
+                                      color: '#fff',
+                                      '& .MuiMenuItem-root:hover': {
+                                        bgcolor: 'rgba(100, 180, 255, 0.1)',
+                                      },
+                                    }
+                                  }
+                                }}
+                                sx={{
+                                  color: '#fff',
+                                  bgcolor: filters.status ? (
+                                    filters.status === 'active' ? 'rgba(46, 125, 50, 0.15)' : 'rgba(211, 47, 47, 0.15)'
+                                  ) : 'rgba(0, 0, 0, 0.2)',
+                                  height: '40px',
+                                  '.MuiOutlinedInput-notchedOutline': {
+                                    borderColor: filters.status ? (
+                                      filters.status === 'active' ? 'rgba(46, 125, 50, 0.5)' : 'rgba(211, 47, 47, 0.5)'
+                                    ) : 'rgba(255, 255, 255, 0.2)',
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(100, 180, 255, 0.3)',
+                                  },
+                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#1e88e5',
+                                  },
+                                  '.MuiSvgIcon-root': {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                  }
+                                }}
+                              >
+                                <MenuItem value="">All Status</MenuItem>
+                                <MenuItem value="active">Active</MenuItem>
+                                <MenuItem value="inactive">Inactive</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Tooltip>
+                          
+                          <Tooltip title="Clear All Filters">
+                            <IconButton 
+                              onClick={() => {
+                                setFilters({ department: '', status: '', userType: '', createdDate: '', lastActive: '' });
+                                setSearchTerm('');
+                              }}
+                              sx={{
+                                ml: 1,
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                '&:hover': { color: '#fff', bgcolor: 'rgba(255, 255, 255, 0.05)' },
+                              }}
+                              size="small"
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                      <Box>
+                        <Button
+                          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}
+                          onClick={fetchUsers}
+                          disabled={loading}
+                          sx={{ 
+                            color: 'rgba(255, 255, 255, 0.7)', 
+                            '&:hover': { color: '#fff' },
+                            mr: 1
+                          }}
+                        >
+                          {loading ? 'Loading...' : 'Refresh'}
+                        </Button>
+                        <Button
+                          variant="contained"
+                          startIcon={<AddIcon />}
+                          onClick={() => navigate('/adduser')}
+                          sx={{
+                            bgcolor: '#1e88e5',
+                            '&:hover': { bgcolor: '#1976d2' },
+                            borderRadius: 2,
+                            boxShadow: '0 4px 12px rgba(30, 136, 229, 0.25)',
+                            transition: 'all 0.2s ease',
+                            '&:active': {
+                              boxShadow: '0 2px 6px rgba(30, 136, 229, 0.3)',
+                              transform: 'translateY(1px)'
+                            }
+                          }}
+                        >
+                          Add User
+                        </Button>
+                      </Box>
+                    </Box>
+                    
+                    {/* Filter chips */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: 1, 
+                      mb: 2,
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(0, 0, 0, 0.15)',
+                      border: '1px solid rgba(100, 180, 255, 0.08)'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                        <FilterListIcon sx={{ color: theme.palette.primary.main, fontSize: 20, mr: 0.5 }} />
+                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
+                          Quick Filters:
+                        </Typography>
+                      </Box>
+
+                      <Chip
+                        label="All Users"
+                        size="small"
+                        clickable
+                        onClick={() => setFilters(prev => ({ ...prev, userType: '' }))}
+                        sx={{
+                          height: 28,
+                          bgcolor: filters.userType === '' ? theme.palette.primary.main : 'rgba(0, 0, 0, 0.2)',
+                          color: filters.userType === '' ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                          '&:hover': {
+                            bgcolor: filters.userType === '' ? theme.palette.primary.dark : 'rgba(30, 136, 229, 0.15)',
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      />
+                      <Chip
+                        label="Administrators"
+                        size="small"
+                        icon={<PersonIcon sx={{ color: filters.userType === 'admin' ? '#fff' : 'rgba(255, 255, 255, 0.5)', fontSize: 16 }} />}
+                        clickable
+                        onClick={() => setFilters(prev => ({ ...prev, userType: 'admin' }))}
+                        sx={{
+                          height: 28,
+                          bgcolor: filters.userType === 'admin' ? theme.palette.primary.main : 'rgba(0, 0, 0, 0.2)',
+                          color: filters.userType === 'admin' ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                          '&:hover': {
+                            bgcolor: filters.userType === 'admin' ? theme.palette.primary.dark : 'rgba(30, 136, 229, 0.15)',
+                          },
+                          transition: 'all 0.2s ease',
+                          '& .MuiChip-icon': { 
+                            color: filters.userType === 'admin' ? '#fff' : 'rgba(255, 255, 255, 0.5)' 
+                          }
+                        }}
+                      />
+                      <Chip
+                        label="Regular Users"
+                        size="small"
+                        clickable
+                        onClick={() => setFilters(prev => ({ ...prev, userType: 'regular' }))}
+                        sx={{
+                          height: 28,
+                          bgcolor: filters.userType === 'regular' ? theme.palette.primary.main : 'rgba(0, 0, 0, 0.2)',
+                          color: filters.userType === 'regular' ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                          '&:hover': {
+                            bgcolor: filters.userType === 'regular' ? theme.palette.primary.dark : 'rgba(30, 136, 229, 0.15)',
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      />
+                      <Chip
+                        label="Active Users"
+                        size="small"
+                        icon={<LockOpenIcon sx={{ color: filters.status === 'active' ? '#fff' : 'rgba(255, 255, 255, 0.5)', fontSize: 16 }} />}
+                        clickable
+                        onClick={() => setFilters(prev => ({ ...prev, status: 'active' }))}
+                        sx={{
+                          height: 28,
+                          bgcolor: filters.status === 'active' ? theme.palette.success.main : 'rgba(0, 0, 0, 0.2)',
+                          color: filters.status === 'active' ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                          '&:hover': {
+                            bgcolor: filters.status === 'active' ? theme.palette.success.dark : 'rgba(46, 125, 50, 0.15)',
+                          },
+                          transition: 'all 0.2s ease',
+                          '& .MuiChip-icon': { 
+                            color: filters.status === 'active' ? '#fff' : 'rgba(255, 255, 255, 0.5)' 
+                          }
+                        }}
+                      />
+                      <Chip
+                        label="Inactive Users"
+                        size="small"
+                        icon={<LockIcon sx={{ color: filters.status === 'inactive' ? '#fff' : 'rgba(255, 255, 255, 0.5)', fontSize: 16 }} />}
+                        clickable
+                        onClick={() => setFilters(prev => ({ ...prev, status: 'inactive' }))}
+                        sx={{
+                          height: 28,
+                          bgcolor: filters.status === 'inactive' ? theme.palette.error.main : 'rgba(0, 0, 0, 0.2)',
+                          color: filters.status === 'inactive' ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                          '&:hover': {
+                            bgcolor: filters.status === 'inactive' ? theme.palette.error.dark : 'rgba(211, 47, 47, 0.15)',
+                          },
+                          transition: 'all 0.2s ease',
+                          '& .MuiChip-icon': { 
+                            color: filters.status === 'inactive' ? '#fff' : 'rgba(255, 255, 255, 0.5)' 
+                          }
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Active filters indicators and search tips */}
+                    {(filters.department || filters.status || filters.userType) && (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        mb: 1,
+                        p: 1,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(30, 136, 229, 0.1)',
+                      }}>
+                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 500 }}>
+                          Active Filters:
+                        </Typography>
+                        {filters.department && (
+                          <Chip
+                            size="small"
+                            label={`Department: ${filters.department}`}
+                            onDelete={() => setFilters(prev => ({ ...prev, department: '' }))}
+                            sx={{ ml: 1, height: 24, bgcolor: 'rgba(30, 136, 229, 0.2)' }}
+                          />
+                        )}
+                        {filters.status && (
+                          <Chip
+                            size="small"
+                            label={`Status: ${filters.status === 'active' ? 'Active' : 'Inactive'}`}
+                            onDelete={() => setFilters(prev => ({ ...prev, status: '' }))}
+                            sx={{ 
+                              ml: 1, 
+                              height: 24, 
+                              bgcolor: filters.status === 'active' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(211, 47, 47, 0.2)'
+                            }}
+                          />
+                        )}
+                        {filters.userType && (
+                          <Chip
+                            size="small"
+                            label={`Type: ${filters.userType === 'admin' ? 'Admin' : 'Regular'}`}
+                            onDelete={() => setFilters(prev => ({ ...prev, userType: '' }))}
+                            sx={{ ml: 1, height: 24, bgcolor: 'rgba(30, 136, 229, 0.2)' }}
+                          />
+                        )}
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 16, mr: 0.5 }} />
+                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                        Search by name, email, mobile, department, address, or ID
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
 
-                {/* Filters */}
+                {/* User Statistics Summary */}
                 <Box sx={{ 
-                  p: 2, 
-                  mb: 3, 
-                  bgcolor: 'rgba(0, 0, 0, 0.15)', 
-                  borderRadius: 2,
-                  border: '1px solid rgba(100, 180, 255, 0.08)'
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 2,
+                  mb: 3
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <FilterListIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
-                    <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 500 }}>
-                      Filter Users
-                    </Typography>
-                  </Box>
+                  <Card sx={{ 
+                    minWidth: 200, 
+                    bgcolor: 'rgba(25, 35, 75, 0.6)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(100, 180, 255, 0.15)'
+                  }}>
+                    <CardContent>
+                      <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>
+                        Total Users
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700 }}>
+                        {users.length}
+                      </Typography>
+                    </CardContent>
+                  </Card>
                   
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} sm={6} md={3}>
-                      <FormControl fullWidth variant="outlined" size="small">
-                        <InputLabel id="department-select-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          Department
-                        </InputLabel>
-                        <Select
-                          labelId="department-select-label"
-                          value={filters.department}
-                          label="Department"
-                          onChange={(e) => handleFilterChange('department', e.target.value)}
-                          sx={{
-                            color: '#fff',
-                            '.MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'rgba(100, 180, 255, 0.3)',
-                            },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#1e88e5',
-                            },
-                            '.MuiSvgIcon-root': {
-                              color: 'rgba(255, 255, 255, 0.7)',
-                            }
-                          }}
-                        >
-                          <MenuItem value="">All Departments</MenuItem>
-                          {departments.map((dept) => (
-                            <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <FormControl fullWidth variant="outlined" size="small">
-                        <InputLabel id="status-select-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          Status
-                        </InputLabel>
-                        <Select
-                          labelId="status-select-label"
-                          value={filters.status}
-                          label="Status"
-                          onChange={(e) => handleFilterChange('status', e.target.value)}
-                          sx={{
-                            color: '#fff',
-                            '.MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'rgba(100, 180, 255, 0.3)',
-                            },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#1e88e5',
-                            },
-                            '.MuiSvgIcon-root': {
-                              color: 'rgba(255, 255, 255, 0.7)',
-                            }
-                          }}
-                        >
-                          <MenuItem value="">All Status</MenuItem>
-                          <MenuItem value="active">Active</MenuItem>
-                          <MenuItem value="inactive">Inactive</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          setFilters({ department: '', status: '' });
-                          setSearchTerm('');
-                        }}
-                        sx={{
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
-                          color: 'rgba(255, 255, 255, 0.7)',
-                          '&:hover': {
-                            borderColor: 'rgba(255, 255, 255, 0.4)',
-                            bgcolor: 'rgba(255, 255, 255, 0.05)'
-                          }
-                        }}
-                      >
-                        Clear Filters
-                      </Button>
-                    </Grid>
-                  </Grid>
+                  <Card sx={{ 
+                    minWidth: 200, 
+                    bgcolor: 'rgba(25, 35, 75, 0.6)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(100, 180, 255, 0.15)'
+                  }}>
+                    <CardContent>
+                      <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>
+                        Active Users
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700 }}>
+                        {users.filter(user => user.is_active).length}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card sx={{ 
+                    minWidth: 200, 
+                    bgcolor: 'rgba(25, 35, 75, 0.6)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(100, 180, 255, 0.15)'
+                  }}>
+                    <CardContent>
+                      <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>
+                        Admins
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700 }}>
+                        {users.filter(user => isAdminUser(user)).length}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card sx={{ 
+                    minWidth: 200, 
+                    bgcolor: 'rgba(25, 35, 75, 0.6)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(100, 180, 255, 0.15)'
+                  }}>
+                    <CardContent>
+                      <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>
+                        Regular Users
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700 }}>
+                        {users.filter(user => !isAdminUser(user)).length}
+                      </Typography>
+                    </CardContent>
+                  </Card>
                 </Box>
 
                 {/* Users Table */}
@@ -535,6 +820,7 @@ export default function UserData() {
                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>User</TableCell>
                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Contact</TableCell>
                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Department</TableCell>
+                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>User Type</TableCell>
                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Status</TableCell>
                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Joined</TableCell>
                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Actions</TableCell>
@@ -575,6 +861,25 @@ export default function UserData() {
                                 </TableCell>
                                 <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                                   {user.department}
+                                </TableCell>
+                                <TableCell>
+                                  <Chip 
+                                    label={isAdminUser(user) ? 'Admin' : 'Regular User'} 
+                                    size="small"
+                                    sx={{
+                                      bgcolor: isAdminUser(user)
+                                        ? alpha(theme.palette.primary.main, 0.2)
+                                        : alpha(theme.palette.secondary.main, 0.2),
+                                      color: isAdminUser(user)
+                                        ? theme.palette.primary.main
+                                        : theme.palette.secondary.main,
+                                      fontWeight: 500,
+                                      border: '1px solid',
+                                      borderColor: isAdminUser(user)
+                                        ? alpha(theme.palette.primary.main, 0.3)
+                                        : alpha(theme.palette.secondary.main, 0.3),
+                                    }}
+                                  />
                                 </TableCell>
                                 <TableCell>
                                   <Chip 
@@ -732,7 +1037,27 @@ export default function UserData() {
                   {selectedUser.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{selectedUser.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="h6">{selectedUser.name}</Typography>
+                    <Chip
+                      label={isAdminUser(selectedUser) ? 'Admin' : 'Regular User'}
+                      size="small"
+                      sx={{
+                        ml: 1,
+                        bgcolor: isAdminUser(selectedUser)
+                          ? alpha(theme.palette.primary.main, 0.2)
+                          : alpha(theme.palette.secondary.main, 0.2),
+                        color: isAdminUser(selectedUser)
+                          ? theme.palette.primary.main
+                          : theme.palette.secondary.main,
+                        fontWeight: 500,
+                        border: '1px solid',
+                        borderColor: isAdminUser(selectedUser)
+                          ? alpha(theme.palette.primary.main, 0.3)
+                          : alpha(theme.palette.secondary.main, 0.3),
+                      }}
+                    />
+                  </Box>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                     {selectedUser.email}
                   </Typography>

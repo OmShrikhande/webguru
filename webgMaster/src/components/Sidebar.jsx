@@ -60,10 +60,9 @@ const Sidebar = ({ open, handleDrawerClose }) => {
   
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'User Management', icon: <PeopleIcon />, path: '/users' },
+    { text: 'User Management', icon: <PeopleIcon />, path: '/userdata' },
     { text: 'Admin Controls', icon: <AdminIcon />, path: '/admin' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
-    { text: 'User Data', icon: <SupervisorAccountIcon />, path: '/userdata' },
     { text: 'Attendance', icon: <CalendarIcon />, path: '/attendance' },
   ];
 

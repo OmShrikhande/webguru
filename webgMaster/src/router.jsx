@@ -7,7 +7,8 @@ import MasterDashboard from './pages/MasterDashboard';
 import Users from './pages/Users';
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
-import Userdata from './components/dashboard/userdata';
+import UserData from './pages/UserData';
+import UserInfo from './pages/UserInfo';
 import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
@@ -91,7 +92,11 @@ const router = createBrowserRouter([
       },
       {
         path: '/userdata',
-        element: <Userdata />
+        element: <UserData />
+      },
+      {
+        path: '/userinfo/:userId',
+        element: <UserInfo />
       },
       {
         path: '/attendance',

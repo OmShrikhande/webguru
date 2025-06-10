@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
+import MasterDashboard from './pages/MasterDashboard';
 import Users from './pages/Users';
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
@@ -10,6 +11,7 @@ import Locations from './pages/Locations';
 import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 // Loading component for lazy-loaded routes
 const LazyLoadingComponent = () => (
@@ -56,6 +58,10 @@ const router = createBrowserRouter([
     element: <Login />
   },
   {
+    path: '/register',
+    element: <Register />
+  },
+  {
     path: '/',
     element: (
       <ProtectedRoute>
@@ -65,6 +71,10 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
+        element: <MasterDashboard />
+      },
+      {
+        path: '/dashboard',
         element: <Dashboard />
       },
       {

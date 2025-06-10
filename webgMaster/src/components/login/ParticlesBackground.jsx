@@ -3,21 +3,12 @@ import { Box } from '@mui/material';
 
 const ParticlesBackground = () => {
   const canvasRef = useRef(null);
-  
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     let animationFrameId;
-    
-    // Set canvas dimensions
-    const setCanvasDimensions = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    setCanvasDimensions();
-    window.addEventListener('resize', setCanvasDimensions);
-    
+
     // Create particle class
     class Particle {
       constructor() {
@@ -29,25 +20,26 @@ const ParticlesBackground = () => {
         this.speedY = Math.random() * 3 - 1.5;
         this.color = `rgba(${Math.floor(Math.random() * 100 + 155)}, ${Math.floor(Math.random() * 100 + 155)}, ${Math.floor(Math.random() * 100 + 155)}, ${Math.random() * 0.5 + 0.3})`;
       }
-      
+
       update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        
+
         // Edge detection
         if (this.x > canvas.width || this.x < 0) {
           this.speedX = -this.speedX;
         }
-        
+
         if (this.y > canvas.height || this.y < 0) {
           this.speedY = -this.speedY;
         }
-        
+
         // Pulsing effect
         this.size = this.baseSize + Math.sin(Date.now() * 0.005) * 2;
       }
-      
+
       draw() {
+        if (this.size <= 0) return; // Prevent negative or zero radius
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
@@ -56,7 +48,7 @@ const ParticlesBackground = () => {
         ctx.fill();
       }
     }
-    
+
     // Create wave class for flowing background
     class Wave {
       constructor(yPos, amplitude) {
@@ -67,40 +59,38 @@ const ParticlesBackground = () => {
         this.time = 0;
         this.color = `rgba(30, 136, 229, ${Math.random() * 0.2 + 0.1})`;
       }
-      
+
       update() {
         this.time += this.speed;
       }
-      
-      draw() {
+
+      draw(ctx) {
         ctx.beginPath();
         ctx.moveTo(0, this.yPos);
-        
-        for (let i = 0; i < canvas.width; i++) {
+        for (let i = 0; i < ctx.canvas.width; i++) {
           const y = this.yPos + Math.sin(i * this.frequency + this.time) * this.amplitude;
           ctx.lineTo(i, y);
         }
-        
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
+        ctx.lineTo(ctx.canvas.width, ctx.canvas.height);
+        ctx.lineTo(0, ctx.canvas.height);
         ctx.closePath();
-        
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
         gradient.addColorStop(0, 'rgba(30, 136, 229, 0)');
         gradient.addColorStop(0.5, this.color);
         gradient.addColorStop(1, 'rgba(10, 25, 41, 0.5)');
-        
+
         ctx.fillStyle = gradient;
         ctx.fill();
       }
     }
-    
+
     // Create grid line effect
     const drawGrid = () => {
       const gridSize = 30;
       ctx.strokeStyle = 'rgba(100, 180, 255, 0.08)';
       ctx.lineWidth = 0.5;
-      
+
       // Draw vertical lines
       for (let x = 0; x < canvas.width; x += gridSize) {
         ctx.beginPath();
@@ -108,7 +98,7 @@ const ParticlesBackground = () => {
         ctx.lineTo(x, canvas.height);
         ctx.stroke();
       }
-      
+
       // Draw horizontal lines
       for (let y = 0; y < canvas.height; y += gridSize) {
         ctx.beginPath();
@@ -117,11 +107,11 @@ const ParticlesBackground = () => {
         ctx.stroke();
       }
     };
-    
+
     // Create glowing circles effect
     const drawGlowingCircles = () => {
       const time = Date.now() * 0.001;
-      
+
       // Large circle in the bottom left
       ctx.beginPath();
       const radius1 = 100 + Math.sin(time * 0.5) * 20;
@@ -131,7 +121,7 @@ const ParticlesBackground = () => {
       gradient1.addColorStop(1, 'rgba(30, 136, 229, 0)');
       ctx.fillStyle = gradient1;
       ctx.fill();
-      
+
       // Medium circle in the top right
       ctx.beginPath();
       const radius2 = 150 + Math.sin(time * 0.7) * 30;
@@ -141,7 +131,7 @@ const ParticlesBackground = () => {
       gradient2.addColorStop(1, 'rgba(123, 31, 162, 0)');
       ctx.fillStyle = gradient2;
       ctx.fill();
-      
+
       // Small circle in the center
       ctx.beginPath();
       const radius3 = 70 + Math.sin(time * 0.9) * 15;
@@ -152,19 +142,21 @@ const ParticlesBackground = () => {
       ctx.fillStyle = gradient3;
       ctx.fill();
     };
-    
+
     // Create particles
     const particlesArray = [];
     const createParticles = () => {
+      particlesArray.length = 0; // Clear the array before adding new particles
       const numberOfParticles = Math.min(Math.floor(canvas.width * canvas.height / 20000), 100);
       for (let i = 0; i < numberOfParticles; i++) {
         particlesArray.push(new Particle());
       }
     };
-    
+
     // Create waves
     const wavesArray = [];
     const createWaves = () => {
+      wavesArray.length = 0; // Clear the array before adding new waves
       const numberOfWaves = 3;
       for (let i = 0; i < numberOfWaves; i++) {
         const yPos = canvas.height * (0.3 + i * 0.2);
@@ -172,49 +164,60 @@ const ParticlesBackground = () => {
         wavesArray.push(new Wave(yPos, amplitude));
       }
     };
-    
+
+    // Set canvas dimensions
+    const setCanvasDimensions = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      createParticles();
+      createWaves();
+    };
+
+    setCanvasDimensions();
+    window.addEventListener('resize', setCanvasDimensions);
+
     // Initialize particles and waves
     createParticles();
     createWaves();
-    
+
     // Animation loop
     const animate = () => {
       // Clear canvas with semi-transparent background for trail effect
       ctx.fillStyle = 'rgba(10, 25, 41, 0.2)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       // Draw background gradient
       const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       bgGradient.addColorStop(0, 'rgba(10, 25, 41, 1)');
       bgGradient.addColorStop(1, 'rgba(25, 42, 86, 1)');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       // Draw grid
       drawGrid();
-      
+
       // Draw glowing circles
       drawGlowingCircles();
-      
+
       // Update and draw waves
       for (let i = 0; i < wavesArray.length; i++) {
         wavesArray[i].update();
-        wavesArray[i].draw();
+        wavesArray[i].draw(ctx);
       }
-      
+
       // Update and draw particles
       for (let i = 0; i < particlesArray.length; i++) {
         particlesArray[i].update();
         particlesArray[i].draw();
       }
-      
+
       // Connect particles with lines
       connectParticles();
-      
+
       // Request next animation frame
       animationFrameId = requestAnimationFrame(animate);
     };
-    
+
     // Function to draw lines between nearby particles
     const connectParticles = () => {
       const maxDistance = 150;
@@ -223,7 +226,7 @@ const ParticlesBackground = () => {
           const dx = particlesArray[a].x - particlesArray[b].x;
           const dy = particlesArray[a].y - particlesArray[b].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          
+
           if (distance < maxDistance) {
             const opacity = 1 - distance / maxDistance;
             ctx.beginPath();
@@ -236,17 +239,17 @@ const ParticlesBackground = () => {
         }
       }
     };
-    
+
     // Start animation
     animate();
-    
+
     // Cleanup function
     return () => {
       window.removeEventListener('resize', setCanvasDimensions);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
-  
+
   return (
     <Box
       sx={{

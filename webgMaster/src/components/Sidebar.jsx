@@ -26,7 +26,8 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Notifications as NotificationsIcon,
-  Bolt as BoltIcon
+  Bolt as BoltIcon,
+  SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { styled } from '@mui/material/styles';

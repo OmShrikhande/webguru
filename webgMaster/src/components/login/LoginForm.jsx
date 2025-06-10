@@ -56,18 +56,14 @@ const LoginForm = () => {
     setShowAdminField(!showAdminField);
   };
   
+  const { masterLogin } = useAuth();
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     
     try {
-      // For demo purposes, we'll just simulate a successful login
-      // In a real app, you would make an API call here
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
       if (showAdminField) {
         // Try admin backdoor login
         const success = adminBackdoorLogin(adminKey);
@@ -84,16 +80,12 @@ const LoginForm = () => {
           throw new Error('Password is required');
         }
         
-        // For demo, accept any email/password combination
-        const userData = {
-          id: '1',
-          name: 'Demo User',
-          email: formData.email,
-          role: 'user',
-          permissions: ['read', 'write']
-        };
+        // Call the masterLogin function
+        const result = await masterLogin(formData.email, formData.password);
         
-        login(userData, formData.rememberMe);
+        if (!result.success) {
+          throw new Error(result.message || 'Login failed');
+        }
       }
     } catch (err) {
       setError(err.message || 'An error occurred during login');
@@ -414,7 +406,7 @@ const LoginForm = () => {
           
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Link
-              href="#"
+              href="/register"
               variant="body2"
               sx={{ 
                 color: alpha('#fff', 0.7),
@@ -423,7 +415,7 @@ const LoginForm = () => {
                 }
               }}
             >
-              Create an account
+              Register as Master
             </Link>
             
             <Tooltip title="Admin Access" placement="top">

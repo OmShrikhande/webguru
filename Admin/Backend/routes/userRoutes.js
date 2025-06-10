@@ -224,4 +224,23 @@ router.get('/users/:id/all-locations', protect, async (req, res) => {
 router.put('/users/:id', protect, updateUser);
 router.delete('/users/:id', protect, deleteUser);
 
+router.get('/users-with-locations', protect, async (req, res) => {
+  try {
+    const User = require('../models/users');
+    const Location = require('../models/location');
+    
+    // Get all users
+    const users = await User.find({});
+    
+    // Get today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+  } catch (err) {
+    console.error('failed to fetch the data :', err);
+    }
+  }); 
+     
+
 module.exports = router;

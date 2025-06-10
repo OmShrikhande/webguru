@@ -63,7 +63,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
     { text: 'User Management', icon: <PeopleIcon />, path: '/users' },
     { text: 'Admin Controls', icon: <AdminIcon />, path: '/admin' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
-    { text: 'Location Tracking', icon: <LocationIcon />, path: '/locations' },
+    { text: 'Location Tracking', icon: <LocationIcon />, path: '/userdata' },
     { text: 'Attendance', icon: <CalendarIcon />, path: '/attendance' },
   ];
 

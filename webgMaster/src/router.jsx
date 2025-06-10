@@ -7,7 +7,7 @@ import MasterDashboard from './pages/MasterDashboard';
 import Users from './pages/Users';
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
-import Locations from './pages/Locations';
+import Userdata from './components/dashboard/userdata';
 import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
@@ -90,8 +90,8 @@ const router = createBrowserRouter([
         element: <Analytics />
       },
       {
-        path: '/locations',
-        element: <Locations />
+        path: '/userdata',
+        element: <Userdata />
       },
       {
         path: '/attendance',

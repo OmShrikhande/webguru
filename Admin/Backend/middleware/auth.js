@@ -23,6 +23,8 @@ exports.protect = async (req, res, next) => {
     try {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("decoded", decoded);
+      console.log("decoded id", decoded.id);
 
       // Check the role from the token
       const role = decoded.role || 'admin'; // Default to admin for backward compatibility

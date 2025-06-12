@@ -227,11 +227,11 @@ function MasterDashboard() {
     <Box
       sx={{
         minHeight: '100vh',
-        width: '100%', // Add this
+        width: '100vw', // Add this
         maxWidth: '100vw', // Add this 
-        background: 'linear-gradient(120deg, #23243a 0%, #1e2a3a 100%)',
-        p: { xs: 2, md: 5 },
-        overflowX: 'hidden', // Add this to prevent horizontal scroll
+        background: 'linear-gradient(120deg, red 0%, #1e2a3a 100%)',
+        p: { xs: 2, md: 2 },
+        overflowX: 'auto', // Add this to prevent horizontal scroll
         position: 'relative', // Add this
         boxSizing: 'border-box', // Add this
       }}

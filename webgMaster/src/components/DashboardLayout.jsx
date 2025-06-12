@@ -5,6 +5,8 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import AnimatedBackground from './AnimatedBackground';
 
+const drawerWidth = 280; // Define your drawer width here
+
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
     flexGrow: 1,
@@ -13,7 +15,7 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    marginLeft: `-280px`,
+    marginLeft: `-${drawerWidth}px`,
     ...(open && {
       transition: theme.transitions.create('margin', {
         easing: theme.transitions.easing.easeOut,
@@ -22,6 +24,10 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
       marginLeft: 0,
     }),
     minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    height: 'auto',
+    overflow: 'hidden',
     background: 'linear-gradient(135deg, rgba(10, 15, 30, 0.95) 0%, rgba(15, 25, 50, 0.97) 100%)',
     backgroundSize: '400% 400%',
     animation: 'gradientAnimation 15s ease infinite',

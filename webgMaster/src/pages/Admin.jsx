@@ -617,11 +617,11 @@ const Admin = () => {
                           </Badge>
                         ) : log.type === 'warning' ? (
                           <Badge color="warning" variant="dot" sx={{ '& .MuiBadge-dot': { width: 10, height: 10 } }}>
-                            <WarningIcon sx={{ color: '#ff9800' }} />
+                            warning
                           </Badge>
                         ) : (
                           <Badge color="info" variant="dot" sx={{ '& .MuiBadge-dot': { width: 10, height: 10 } }}>
-                            <InfoIcon sx={{ color: '#2196f3' }} />
+                            info
                           </Badge>
                         )}
                       </ListItemIcon>

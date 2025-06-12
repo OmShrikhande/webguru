@@ -50,7 +50,7 @@ const LogoContainer = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(1),
 }));
 
-const AnimatedListItem = motion(ListItemButton);
+const AnimatedListItem = motion.create(ListItemButton);
 
 const Sidebar = ({ open, handleDrawerClose }) => {
   const theme = useTheme();

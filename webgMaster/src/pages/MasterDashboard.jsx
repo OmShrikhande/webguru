@@ -5,1035 +5,574 @@ import {
   Grid, 
   Card, 
   CardContent, 
-  CardHeader,
-  Button,
-  IconButton,
-  Tooltip,
-  CircularProgress,
+  Avatar, 
+  CircularProgress, 
+  Fade, 
   Alert,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemAvatar,
-  Avatar,
-  Paper,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  useTheme,
-  alpha
+  IconButton, 
+  Divider, 
+  Stack 
 } from '@mui/material';
-import { 
-  People as PeopleIcon,
-  AdminPanelSettings as AdminPanelSettingsIcon,
-  Person as PersonIcon,
-  CalendarToday as CalendarTodayIcon,
-  LocationOn as LocationOnIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Schedule as ScheduleIcon,
-  Refresh as RefreshIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon,
-  AccessTime as AccessTimeIcon,
-  Event as EventIcon,
-  EventAvailable as EventAvailableIcon,
-  EventBusy as EventBusyIcon,
-  Timeline as TimelineIcon
-} from '@mui/icons-material';
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent
+} from '@mui/lab';
+import { blue, green, orange, red, purple } from '@mui/material/colors';
+import { Bar, Line } from 'react-chartjs-2';
 import { motion } from 'framer-motion';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import { Line } from 'react-chartjs-2';
+
+// Chart.js registration
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
+  BarElement,
   LineElement,
+  PointElement,
   Title,
-  Tooltip as ChartTooltip,
-  Legend,
-  Filler
-} from 'chart.js';
-// import Grid from '@mui/material/Unstable_Grid2';
+  Tooltip,
+  Legend
+} from 'chart.js';  // Change from 'chart' to 'chart.js'
+import axios from 'axios';
 
-// Register ChartJS components
+// Add these imports at the top with other imports
+import PeopleIcon from '@mui/icons-material/People';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import WorkIcon from '@mui/icons-material/Work';
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  PointElement,
+  BarElement,
   LineElement,
+  PointElement,
   Title,
-  ChartTooltip,
-  Legend,
-  Filler
+  Tooltip,
+  Legend
 );
 
-const MasterDashboard = () => {
-  const theme = useTheme();
-  const { getToken } = useAuth();
+function MasterDashboard() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [stats, setStats] = useState({
-    totalCounts: {
-      admins: 0,
-      users: 0,
-      attendance: 0,
-      locations: 0,
-      visitLocations: 0
-    },
-    todayCounts: {
-      attendance: 0,
-      locations: 0,
-      visitLocations: 0,
-      activeUsers: 0,
-      presentUsers: 0,
-      absentUsers: 0,
-      lateUsers: 0
-    },
-    recentActivities: [],
-    weeklyAttendance: []
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    totalAdmins: 0,
+    recentUsers: 0,
+    departmentStats: []
   });
+  const [todayAttendance, setTodayAttendance] = useState({
+    records: [],
+    departmentStats: [],
+    summary: {
+      total: 0,
+      present: 0,
+      late: 0,
+      absent: 0,
+      halfDay: 0,
+      averageCheckInTime: '00:00'
+    }
+  });
+  const [error, setError] = useState(null);
 
-  // Fetch dashboard stats on component mount
   useEffect(() => {
-    fetchDashboardStats();
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token'); // Assuming you store the token in localStorage
+        
+        // Fetch dashboard stats
+        const [statsResponse, attendanceResponse] = await Promise.all([
+          axios.get('http://localhost:5000/api/dashboard/stats', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get('http://localhost:5000/api/dashboard/today-attendance', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        if (statsResponse.data.success && attendanceResponse.data.success) {
+          setStats(statsResponse.data.data);
+          setTodayAttendance(attendanceResponse.data.data);
+        }
+      } catch (error) {
+        console.error('Dashboard data fetch error:', error);
+        setError(error.response?.data?.message || 'Failed to fetch dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
-  // Fetch dashboard stats from API
-  const fetchDashboardStats = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      const token = getToken();
-      const response = await axios.get('http://localhost:5000/api/master/dashboard', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      if (response.data.success) {
-        setStats(response.data.stats);
-      } else {
-        setError(response.data.message || 'Failed to fetch dashboard statistics');
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      setError(error.response?.data?.message || 'An error occurred while fetching dashboard statistics');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Transform backend data for stats cards
+  const statsData = [
+    {
+      label: 'Total Users',
+      value: stats.totalUsers,
+      icon: <PeopleIcon />,
+      color: blue[500],
+    },
+    {
+      label: 'Active Today',
+      value: todayAttendance.summary.present,
+      icon: <EventAvailableIcon />,
+      color: green[500],
+    },
+    {
+      label: 'Late Today',
+      value: todayAttendance.summary.late,
+      icon: <AccessTimeIcon />,
+      color: orange[500],
+    },
+    {
+      label: 'Active Admins',
+      value: stats.totalAdmins,
+      icon: <AdminPanelSettingsIcon />,
+      color: purple[500],
+    },
+  ];
 
-  // Prepare chart data for weekly attendance
+  // Transform attendance data for chart
   const chartData = {
-    labels: stats.weeklyAttendance.map(day => day.date),
+    labels: todayAttendance.departmentStats.map(dept => dept._id),
     datasets: [
       {
         label: 'Present',
-        data: stats.weeklyAttendance.map(day => day.present),
-        borderColor: '#4caf50',
-        backgroundColor: alpha('#4caf50', 0.1),
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Absent',
-        data: stats.weeklyAttendance.map(day => day.absent),
-        borderColor: '#f44336',
-        backgroundColor: alpha('#f44336', 0.1),
-        fill: true,
-        tension: 0.4
+        data: todayAttendance.departmentStats.map(dept => dept.present),
+        backgroundColor: 'rgba(76, 175, 80, 0.5)',
+        borderColor: green[700],
+        borderWidth: 2,
       },
       {
         label: 'Late',
-        data: stats.weeklyAttendance.map(day => day.late),
-        borderColor: '#ff9800',
-        backgroundColor: alpha('#ff9800', 0.1),
-        fill: true,
-        tension: 0.4
+        data: todayAttendance.departmentStats.map(dept => dept.late),
+        backgroundColor: 'rgba(255, 152, 0, 0.5)',
+        borderColor: orange[700],
+        borderWidth: 2,
+      },
+      {
+        label: 'Absent',
+        data: todayAttendance.departmentStats.map(dept => dept.absent),
+        backgroundColor: 'rgba(244, 67, 54, 0.5)',
+        borderColor: red[700],
+        borderWidth: 2,
       }
     ]
   };
 
+  // Modified chart options to show multiple datasets
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: false,
     plugins: {
-      legend: {
+      legend: { 
+        display: true,
         position: 'top',
-        labels: {
-          color: 'rgba(255, 255, 255, 0.7)'
-        }
+        labels: { color: 'rgba(255,255,255,0.8)' }
       },
-      tooltip: {
-        backgroundColor: 'rgba(25, 35, 60, 0.9)',
-        titleColor: 'white',
-        bodyColor: 'white',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1
-      }
     },
     scales: {
-      x: {
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        },
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.7)'
-        }
+      x: { 
+        grid: { display: false },
+        ticks: { color: 'rgba(255,255,255,0.8)' }
       },
-      y: {
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
-        },
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.7)'
-        }
-      }
-    }
+      y: { 
+        grid: { color: 'rgba(255,255,255,0.1)' },
+        ticks: { color: 'rgba(255,255,255,0.8)' }
+      },
+    },
+    animation: {
+      duration: 1200,
+      easing: 'easeInOutQuart',
+    },
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        duration: 0.8,
-        ease: "easeOut"
-      }
-    },
-    exit: {
-      opacity: 0,
-      transition: {
-        staggerChildren: 0.05,
-        staggerDirection: -1,
-        duration: 0.5
-      }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { y: 30, opacity: 0, scale: 0.95 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      scale: 1,
-      transition: {
-        duration: 0.6,
-        ease: [0.25, 0.1, 0.25, 1.0] // Custom easing
-      }
-    },
-    hover: {
-      scale: 1.03,
-      boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
-      transition: {
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    },
-    tap: {
-      scale: 0.98,
-      transition: {
-        duration: 0.15
-      }
-    },
-    exit: {
-      y: -20,
-      opacity: 0,
-      transition: {
-        duration: 0.4
-      }
-    }
-  };
-  
-  // Card animations
-  const cardVariants = {
-    hidden: { y: 20, opacity: 0, scale: 0.95 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      scale: 1,
-      transition: {
-        duration: 0.5,
-        type: "spring",
-        stiffness: 200,
-        damping: 15
-      }
-    },
-    hover: {
-      y: -5,
-      scale: 1.02,
-      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
-      transition: {
-        duration: 0.3
-      }
-    }
-  };
-  
-  // Chart animation
-  const chartVariants = {
-    hidden: { opacity: 0, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: {
-        delay: 0.4,
-        duration: 0.7,
-        ease: "easeOut"
-      }
-    }
-  };
-  
-  // Text animation
-  const textVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut"
-      }
-    }
-  };
+  // Transform attendance records for activities feed
+  const recentActivities = todayAttendance.records.slice(0, 5).map(record => ({
+    time: new Date(record.checkIn?.time).toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    }),
+    activity: `${record.userId.name} ${record.status === 'late' ? 'checked in late' : 'checked in'}`
+  }));
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ 
-            opacity: 1, 
-            scale: 1,
-            transition: {
-              duration: 0.5,
-              ease: "easeOut"
-            }
-          }}
-          exit={{ opacity: 0, scale: 0.5 }}
-        >
-          <motion.div
-            animate={{ 
-              rotate: 360,
-              transition: { 
-                duration: 1.5, 
-                repeat: Infinity, 
-                ease: "linear" 
-              }
-            }}
-          >
-            <CircularProgress size={60} />
-          </motion.div>
-        </motion.div>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ 
-          opacity: 1, 
-          y: 0,
-          transition: {
-            duration: 0.4,
-            ease: "easeOut"
-          }
-        }}
-        exit={{ opacity: 0, y: -20 }}
-      >
-        <Alert 
-          severity="error" 
-          sx={{ 
-            mb: 3,
-            boxShadow: '0 4px 15px rgba(244, 67, 54, 0.3)'
-          }}
-        >
-          {error}
-        </Alert>
-      </motion.div>
-    );
-  }
+  // Sample performance data
+  const performanceData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [{
+      label: 'Productivity',
+      data: [75, 82, 78, 85, 80, 87, 89],
+      borderColor: blue[500],
+      backgroundColor: `${blue[500]}33`,
+      fill: true,
+      tension: 0.4
+    }]
+  };
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      variants={containerVariants}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        width: '100%', // Add this
+        maxWidth: '100vw', // Add this 
+        background: 'linear-gradient(120deg, #23243a 0%, #1e2a3a 100%)',
+        p: { xs: 2, md: 5 },
+        overflowX: 'hidden', // Add this to prevent horizontal scroll
+        position: 'relative', // Add this
+        boxSizing: 'border-box', // Add this
+      }}
     >
-      <Box sx={{ mb: 4 }}>
-        <motion.div 
-          variants={textVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 700, 
-              mb: 1, 
-              color: '#fff',
-              background: 'linear-gradient(90deg, #fff, #90caf9)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      
+      <Fade in={!loading}>
+        <Box>
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
           >
-            <motion.span
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ 
-                opacity: 1, 
-                x: 0,
-                transition: { delay: 0.2, duration: 0.6 }
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 900,
+                letterSpacing: 1,
+                color: '#fff',
+                background: 'linear-gradient(90deg, #fff, #90caf9, #00e676, #ffeb3b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 1,
               }}
             >
               Master Dashboard
-            </motion.span>
-          </Typography>
-        </motion.div>
-        <motion.div 
-          variants={textVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.3 }}
-        >
-          <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
-            Overview of your entire system, including admins, users, and attendance
-          </Typography>
-        </motion.div>
-      </Box>
-      
-      <Grid container spacing={3}>
-        {/* Stats Cards - First Row */}
-        <Grid item xs={12} sm={6} md={3}>
-          <motion.div 
-            variants={cardVariants}
-            whileHover="hover"
-            whileTap="tap"
-            initial="hidden"
-            animate="visible"
-          >
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'all 0.3s ease',
-            }}>
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+            </Typography>
+            <Typography
+              variant="subtitle1"
+              sx={{ color: 'rgba(255,255,255,0.8)', mb: 4 }}
+            >
+              Welcome! Here’s a quick overview of your system.
+            </Typography>
+          </motion.div>
+
+          {/* Stats Cards */}
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            {statsData.map((stat, idx) => (
+              <Grid item xs={12} sm={6} md={3} key={stat.label}>
                 <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ 
-                    scale: 1, 
-                    opacity: 1,
-                    transition: { delay: 0.2, duration: 0.5 }
-                  }}
+                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.2 + idx * 0.1, duration: 0.6, type: 'spring' }}
+                  whileHover={{ scale: 1.04, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
                 >
-                  <Box 
-                    sx={{ 
-                      position: 'absolute',
-                      top: -20,
-                      right: -20,
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      bgcolor: alpha('#1e88e5', 0.1),
-                      zIndex: 0,
-                    }} 
-                  />
-                </motion.div>
-                <motion.div variants={textVariants}>
-                  <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" gutterBottom>
-                    Total Admins
-                  </Typography>
-                </motion.div>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <motion.div
-                    initial={{ rotate: -10, scale: 0.8, opacity: 0 }}
-                    animate={{ 
-                      rotate: 0, 
-                      scale: 1, 
-                      opacity: 1,
-                      transition: { delay: 0.3, duration: 0.5 }
-                    }}
-                    whileHover={{ 
-                      rotate: [0, -10, 10, -5, 5, 0],
-                      transition: { duration: 0.5 }
+                  <Card
+                    sx={{
+                      borderRadius: 4,
+                      background: 'rgba(255,255,255,0.07)',
+                      boxShadow: '0 2px 16px rgba(0,0,0,0.18)',
+                      color: '#fff',
+                      minHeight: 120,
                     }}
                   >
-                    <AdminPanelSettingsIcon sx={{ fontSize: 32, color: '#42a5f5', mr: 1 }} />
-                  </motion.div>
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ 
-                      y: 0, 
-                      opacity: 1,
-                      transition: { delay: 0.4, duration: 0.6 }
-                    }}
-                  >
-                    <Typography variant="h4" sx={{ fontWeight: 600, color: '#fff' }}>
-                      {stats.totalCounts.admins}
-                    </Typography>
-                  </motion.div>
-                </Box>
+                    <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: stat.color,
+                          width: 56,
+                          height: 56,
+                          mr: 2,
+                          boxShadow: `0 4px 16px ${stat.color}55`,
+                        }}
+                      >
+                        {stat.icon}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                          {stat.value}
+                        </Typography>
+                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                          {stat.label}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* New Quick Actions Section */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>Quick Actions</Typography>
+            <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 1 }}>
+              {['Add User', 'Generate Report', 'View Locations', 'Manage Departments'].map((action, idx) => (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ 
-                    opacity: 1,
-                    transition: { delay: 0.5, duration: 0.5 }
-                  }}
+                  key={action}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * idx }}
                 >
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
-                    System administrators
-                  </Typography>
+                  <Card
+                    sx={{
+                      minWidth: 200,
+                      background: 'rgba(255,255,255,0.05)',
+                      backdropFilter: 'blur(10px)',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle2" sx={{ color: 'white' }}>{action}</Typography>
+                    </CardContent>
+                  </Card>
                 </motion.div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box 
-                  sx={{ 
-                    position: 'absolute',
-                    top: -20,
-                    right: -20,
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    bgcolor: alpha('#4caf50', 0.1),
-                    zIndex: 0,
-                  }} 
-                />
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" gutterBottom>
-                  Total Users
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <PeopleIcon sx={{ fontSize: 32, color: '#66bb6a', mr: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 600, color: '#fff' }}>
-                    {stats.totalCounts.users}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
-                  Registered users
-                </Typography>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box 
-                  sx={{ 
-                    position: 'absolute',
-                    top: -20,
-                    right: -20,
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    bgcolor: alpha('#ff9800', 0.1),
-                    zIndex: 0,
-                  }} 
-                />
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" gutterBottom>
-                  Today's Attendance
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <CalendarTodayIcon sx={{ fontSize: 32, color: '#ffb74d', mr: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 600, color: '#fff' }}>
-                    {stats.todayCounts.attendance}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
-                  Records today
-                </Typography>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box 
-                  sx={{ 
-                    position: 'absolute',
-                    top: -20,
-                    right: -20,
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    bgcolor: alpha('#f44336', 0.1),
-                    zIndex: 0,
-                  }} 
-                />
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" gutterBottom>
-                  Active Users
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <PersonIcon sx={{ fontSize: 32, color: '#ef5350', mr: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 600, color: '#fff' }}>
-                    {stats.todayCounts.activeUsers}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
-                  Users active today
-                </Typography>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        {/* Stats Cards - Second Row */}
-        <Grid item xs={12} sm={6} md={4}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Today's Attendance Breakdown
-                  </Typography>
-                }
-                sx={{ pb: 0 }}
-              />
-              <CardContent>
-                <Grid container spacing={2}>
-                  <Grid item xs={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Avatar sx={{ bgcolor: alpha('#4caf50', 0.2), mx: 'auto', mb: 1 }}>
-                        <CheckCircleIcon sx={{ color: '#4caf50' }} />
-                      </Avatar>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
-                        {stats.todayCounts.presentUsers}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Present
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Avatar sx={{ bgcolor: alpha('#f44336', 0.2), mx: 'auto', mb: 1 }}>
-                        <CancelIcon sx={{ color: '#f44336' }} />
-                      </Avatar>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
-                        {stats.todayCounts.absentUsers}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Absent
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Avatar sx={{ bgcolor: alpha('#ff9800', 0.2), mx: 'auto', mb: 1 }}>
-                        <ScheduleIcon sx={{ color: '#ff9800' }} />
-                      </Avatar>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
-                        {stats.todayCounts.lateUsers}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Late
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Location Tracking
-                  </Typography>
-                }
-                sx={{ pb: 0 }}
-              />
-              <CardContent>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Avatar sx={{ bgcolor: alpha('#2196f3', 0.2), mx: 'auto', mb: 1 }}>
-                        <LocationOnIcon sx={{ color: '#2196f3' }} />
-                      </Avatar>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
-                        {stats.todayCounts.locations}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Locations Today
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 1 }}>
-                      <Avatar sx={{ bgcolor: alpha('#9c27b0', 0.2), mx: 'auto', mb: 1 }}>
-                        <EventIcon sx={{ color: '#9c27b0' }} />
-                      </Avatar>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
-                        {stats.todayCounts.visitLocations}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Visit Locations
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-                <Box sx={{ mt: 2, p: 1, bgcolor: alpha('#2196f3', 0.1), borderRadius: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', textAlign: 'center' }}>
-                    Total tracked locations: {stats.totalCounts.locations}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    System Status
-                  </Typography>
-                }
-                action={
-                  <Tooltip title="Refresh Data">
-                    <IconButton onClick={fetchDashboardStats} sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      <RefreshIcon />
-                    </IconButton>
-                  </Tooltip>
-                }
-                sx={{ pb: 0 }}
-              />
-              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <Box sx={{ textAlign: 'center', mb: 2 }}>
-                  <Chip 
-                    label="System Online" 
-                    color="success" 
-                    icon={<CheckCircleIcon />} 
-                    sx={{ px: 2, py: 2.5, fontSize: '1rem' }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 2 }}>
-                  <Button 
-                    variant="outlined" 
-                    startIcon={<TimelineIcon />}
-                    sx={{ 
-                      color: 'white',
-                      borderColor: alpha('#fff', 0.3),
-                      '&:hover': {
-                        borderColor: '#fff',
-                        bgcolor: alpha('#fff', 0.1)
-                      }
-                    }}
-                  >
-                    View Reports
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    startIcon={<PeopleIcon />}
-                    sx={{ 
-                      bgcolor: theme.palette.primary.main,
-                      '&:hover': {
-                        bgcolor: theme.palette.primary.dark
-                      }
-                    }}
-                  >
-                    Manage Users
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        {/* Weekly Attendance Chart */}
-        <Grid item xs={12} md={8}>
-          <motion.div 
-            variants={chartVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover={{ 
-              scale: 1.01,
-              transition: { duration: 0.3 }
+              ))}
+            </Stack>
+          </Box>
+
+          {/* Main Dashboard Content */}
+          <Grid 
+            container 
+            spacing={3} 
+            sx={{
+              width: '100%',
+              m: 0, // Remove default margins
+              '& .MuiGrid-item': {
+                pl: { xs: 0, sm: 3 }, // Adjust padding for different screen sizes
+              }
             }}
           >
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              transition: 'all 0.3s ease',
-            }}>
-              <CardHeader 
-                title={
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ 
-                      opacity: 1, 
-                      x: 0,
-                      transition: { delay: 0.2, duration: 0.5 }
-                    }}
-                  >
-                    <Typography variant="h6" sx={{ color: '#fff' }}>
-                      Weekly Attendance Trends
-                    </Typography>
-                  </motion.div>
-                }
-                sx={{ pb: 0 }}
-              />
-              <CardContent>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: 1, 
-                    y: 0,
-                    transition: { delay: 0.4, duration: 0.7 }
+            {/* Chart Section */}
+            <Grid item xs={12} md={8}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5, duration: 0.7 }}
+                style={{ height: 320 }}
+              >
+                <Card
+                  sx={{
+                    borderRadius: 4,
+                    background: 'rgba(255,255,255,0.09)',
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+                    color: '#fff',
+                    height: 320,
                   }}
                 >
-                  <Box sx={{ height: 300, p: 1 }}>
-                    {stats.weeklyAttendance.length > 0 ? (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ 
-                          opacity: 1,
-                          transition: { delay: 0.5, duration: 0.8 }
-                        }}
-                      >
-                        <Line data={chartData} options={chartOptions} />
-                      </motion.div>
-                    ) : (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ 
-                            opacity: 1,
-                            transition: { delay: 0.3, duration: 0.5 }
-                          }}
-                        >
-                          <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                            No attendance data available for the past week
-                          </Typography>
-                        </motion.div>
-                      </Box>
-                    )}
-                  </Box>
-                </motion.div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Grid>
-        
-        {/* Recent Activities */}
-        <Grid item xs={12} md={4}>
-          <motion.div 
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover="hover"
-          >
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-              transition: 'all 0.3s ease',
-            }}>
-              <CardHeader 
-                title={
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ 
-                      opacity: 1, 
-                      x: 0,
-                      transition: { delay: 0.3, duration: 0.5 }
-                    }}
-                  >
-                    <Typography variant="h6" sx={{ color: '#fff' }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ mb: 2, color: '#fff', fontWeight: 700 }}>
+                      Today's Attendance Overview
+                    </Typography>
+                    <Line data={chartData} options={chartOptions} height={220} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7, duration: 0.7 }}
+              >
+                <Card
+                  sx={{
+                    borderRadius: 4,
+                    background: 'rgba(255,255,255,0.09)',
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+                    color: '#fff',
+                    height: 320,
+                    overflow: 'auto',
+                  }}
+                >
+                  <CardContent>
+                    <Typography variant="h6" sx={{ mb: 2, color: '#fff', fontWeight: 700 }}>
+                      <NotificationsActiveIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                       Recent Activities
                     </Typography>
-                  </motion.div>
-                }
-                sx={{ pb: 0 }}
-              />
-              <CardContent sx={{ maxHeight: 300, overflow: 'auto' }}>
-                <List sx={{ p: 0 }}>
-                  {stats.recentActivities.length > 0 ? (
-                    stats.recentActivities.map((activity, index) => (
-                      <motion.div
-                        key={activity.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ 
-                          opacity: 1, 
-                          x: 0,
-                          transition: { 
-                            delay: 0.2 + (index * 0.1),
-                            duration: 0.5
-                          }
-                        }}
-                        whileHover={{ 
-                          scale: 1.02, 
-                          x: 5,
-                          transition: { duration: 0.2 }
-                        }}
-                      >
-                        <React.Fragment>
-                          <ListItem alignItems="flex-start" sx={{ px: 1 }}>
-                            <ListItemAvatar>
-                              <motion.div
-                                whileHover={{ 
-                                  rotate: 360,
-                                  transition: { duration: 0.5 }
-                                }}
-                              >
-                                <Avatar sx={{ 
-                                  bgcolor: activity.type === 'admin_login' 
-                                    ? alpha('#1e88e5', 0.2) 
-                                    : activity.type === 'attendance' 
-                                      ? alpha('#4caf50', 0.2) 
-                                      : alpha('#ff9800', 0.2),
-                                  color: activity.type === 'admin_login' 
-                                    ? '#1e88e5' 
-                                    : activity.type === 'attendance' 
-                                      ? '#4caf50' 
-                                      : '#ff9800'
-                                }}>
-                                  {activity.type === 'admin_login' 
-                                    ? <AdminPanelSettingsIcon /> 
-                                    : activity.type === 'attendance' 
-                                      ? <EventAvailableIcon /> 
-                                      : <LocationOnIcon />}
-                                </Avatar>
-                              </motion.div>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Typography variant="body1" sx={{ color: '#fff' }}>
-                                  {activity.user}
-                                </Typography>
-                              }
-                              secondary={
-                                <>
-                                  <Typography variant="body2" component="span" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                                    {activity.action}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                                    {new Date(activity.time).toLocaleString()}
-                                  </Typography>
-                                </>
-                              }
-                            />
-                          </ListItem>
-                          {index < stats.recentActivities.length - 1 && (
-                            <Divider variant="inset" component="li" sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                          )}
-                        </React.Fragment>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ 
-                        opacity: 1,
-                        transition: { delay: 0.4, duration: 0.5 }
-                      }}
-                    >
-                      <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', py: 4 }}>
-                        No recent activities
+                    <Box>
+                      {recentActivities.map((act, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.8 + idx * 0.08, duration: 0.4 }}
+                        >
+                          <Box
+                            sx={{
+                              mb: 2,
+                              p: 1.2,
+                              borderRadius: 2,
+                              background: 'rgba(33,150,243,0.07)',
+                              display: 'flex',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: blue[300],
+                                fontWeight: 700,
+                                minWidth: 56,
+                                mr: 1,
+                              }}
+                            >
+                              {act.time}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#fff' }}>
+                              {act.activity}
+                            </Typography>
+                          </Box>
+                        </motion.div>
+                      ))}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* New Sections */}
+            {/* Department Performance */}
+            <Grid item xs={12} md={6}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card sx={{
+                  borderRadius: 4,
+                  background: 'rgba(255,255,255,0.09)',
+                  boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+                  color: '#fff'
+                }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Department Performance
                       </Typography>
-                    </motion.div>
-                  )}
-                </List>
-              </CardContent>
-            </Card>
+                      <IconButton size="small" sx={{ color: 'white' }}>
+                        <MoreVertIcon />
+                      </IconButton>
+                    </Box>
+                    <Box sx={{ height: 300 }}>
+                      <Line data={performanceData} options={chartOptions} />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* Recent Timeline */}
+            <Grid item xs={12} md={6}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card sx={{
+                  borderRadius: 4,
+                  background: 'rgba(255,255,255,0.09)',
+                  boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+                  color: '#fff',
+                  height: '100%'
+                }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+                      Recent Updates
+                    </Typography>
+                    <Timeline position="alternate" sx={{ color: 'white' }}>
+                      {/*
+                        Sample timeline data - replace with real data as needed
+                        { title, icon, color }
+                      */}
+                      {/*
+                        { title: 'New Employee Added', icon: <GroupAddIcon />, color: green[500] },
+                        { title: 'Location Updated', icon: <LocationOnIcon />, color: blue[500] },
+                        { title: 'Department Changed', icon: <WorkIcon />, color: purple[500] }
+                      */}
+                    </Timeline>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* System Status */}
+            <Grid item xs={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Card sx={{
+                  borderRadius: 4,
+                  background: 'rgba(255,255,255,0.09)',
+                  boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+                  color: '#fff'
+                }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+                      System Status
+                    </Typography>
+                    <Grid container spacing={3}>
+                      {/*
+                        Sample status data - replace with real data as needed
+                        { label, value, trend }
+                      */}
+                      {/*
+                        { label: 'Server Status', value: 'Operational', trend: 'up' },
+                        { label: 'Response Time', value: '145ms', trend: 'down' },
+                        { label: 'Active Sessions', value: '234', trend: 'up' },
+                        { label: 'Error Rate', value: '0.02%', trend: 'down' }
+                      */}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </Box>
+      </Fade>
+      
+      {/* Loader */}
+      {loading && (
+        <Box
+          sx={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(30,36,58,0.95)',
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <CircularProgress size={70} thickness={4} sx={{ color: blue[400] }} />
           </motion.div>
-        </Grid>
-      </Grid>
-    </motion.div>
+        </Box>
+      )}
+    </Box>
   );
-};
+}
 
 export default MasterDashboard;

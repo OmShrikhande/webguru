@@ -191,7 +191,7 @@ const Dashboard = () => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Master Dashboard
+            Master Dash
           </Typography>
         </motion.div>
         <motion.div variants={itemVariants}>

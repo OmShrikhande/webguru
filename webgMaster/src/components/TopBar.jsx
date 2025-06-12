@@ -13,7 +13,9 @@ import {
   Avatar,
   Tooltip,
   alpha,
-  styled
+  styled,
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -25,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -80,6 +83,9 @@ const TopBar = ({ open, handleDrawerOpen }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const isMenuOpen = Boolean(anchorEl);
   const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
@@ -105,6 +111,25 @@ const TopBar = ({ open, handleDrawerOpen }) => {
 
   const handleMobileMenuOpen = (event) => {
     setMobileMoreAnchorEl(event.currentTarget);
+  };
+
+  const handleSearch = async (event) => {
+    const query = event.target.value;
+    setSearchQuery(query);
+
+    if (query.length > 2) {
+      setIsSearching(true);
+      try {
+        const response = await axios.get(`/api/search?q=${query}`);
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      setSearchResults([]);
+    }
   };
 
   const menuId = 'primary-search-account-menu';
@@ -274,9 +299,33 @@ const TopBar = ({ open, handleDrawerOpen }) => {
               <SearchIcon />
             </SearchIconWrapper>
             <StyledInputBase
-              placeholder="Search…"
-              inputProps={{ 'aria-label': 'search' }}
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={handleSearch}
+              endAdornment={
+                isSearching ? (
+                  <CircularProgress size={20} sx={{ color: 'white', opacity: 0.5 }} />
+                ) : null
+              }
             />
+            {searchResults.length > 0 && (
+              <Paper
+                sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  mt: 1,
+                  maxHeight: 400,
+                  overflow: 'auto',
+                  backgroundColor: 'rgba(15, 25, 45, 0.95)',
+                  borderRadius: 1,
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}
+              >
+                {/* Search results list */}
+              </Paper>
+            )}
           </Search>
           
           <Box sx={{ flexGrow: 1 }} />

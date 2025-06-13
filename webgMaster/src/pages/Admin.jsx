@@ -1,98 +1,215 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
-  Grid, 
   Paper, 
-  Card, 
-  CardContent, 
-  CardHeader, 
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
   IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Switch,
   Button,
-  Divider,
-  LinearProgress,
   Tooltip,
+  CircularProgress,
   Alert,
-  Badge,
-  Tab,
-  Tabs,
   TextField,
   InputAdornment,
-  Avatar,
-  alpha
+  Chip,
+  Avatar
 } from '@mui/material';
 import { 
   Refresh as RefreshIcon,
-  Security as SecurityIcon,
-  Storage as StorageIcon,
-  BackupTable as BackupIcon,
-  Code as CodeIcon,
-  BugReport as BugIcon,
-  NetworkCheck as NetworkIcon,
-  Lock as LockIcon,
-  LockOpen as LockOpenIcon,
-  Save as SaveIcon,
-  Delete as DeleteIcon,
-  Settings as SettingsIcon,
-  CloudUpload as CloudUploadIcon,
-  CloudDownload as CloudDownloadIcon,
   Search as SearchIcon,
-  PowerSettingsNew as PowerIcon,
-  Speed as SpeedIcon,
-  Memory as MemoryIcon,
-  Dns as DnsIcon,
-  People as PeopleIcon,
-  ManageAccounts as ManageAccountsIcon,
-  ViewList as ViewListIcon,
-  LibraryAddCheck as LibraryAddCheckIcon,
-  AdminPanelSettings as AdminPanelSettingsIcon
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  AccessTime as AccessTimeIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
-const serverMetrics = {
-  cpu: 42,
-  memory: 63,
-  disk: 78,
-  network: 34,
-  uptime: '23 days, 4 hours, 12 minutes',
-  lastRestart: '2023-04-10 02:14:36',
-  activeSessions: 187,
-};
-
-const recentLogs = [
-  { id: 1, type: 'error', message: 'Failed login attempt - IP: 192.168.1.34', timestamp: '2023-05-01 14:23:45' },
-  { id: 2, type: 'warning', message: 'Unusual traffic detected - Rate limiting applied', timestamp: '2023-05-01 13:45:12' },
-  { id: 3, type: 'info', message: 'System backup completed successfully', timestamp: '2023-05-01 12:00:00' },
-  { id: 4, type: 'info', message: 'User "admin" changed system settings', timestamp: '2023-05-01 11:34:22' },
-  { id: 5, type: 'error', message: 'Database connection timeout - Reconnected after 3 attempts', timestamp: '2023-05-01 10:12:56' },
-  { id: 6, type: 'warning', message: 'CPU usage exceeded 80% for 5 minutes', timestamp: '2023-05-01 09:45:23' },
+// Sample admin data (will be replaced with API data)
+const sampleAdmins = [
+  {
+    _id: '1',
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    department: 'IT',
+    position: 'System Administrator',
+    isActive: true,
+    lastLogin: new Date().toISOString(),
+    loginHistory: [
+      {
+        loginTime: new Date(Date.now() - 3600000).toISOString(),
+        logoutTime: new Date().toISOString(),
+        ipAddress: '192.168.1.100',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      {
+        loginTime: new Date(Date.now() - 86400000).toISOString(),
+        logoutTime: new Date(Date.now() - 82800000).toISOString(),
+        ipAddress: '192.168.1.100',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    ]
+  },
+  {
+    _id: '2',
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane.smith@example.com',
+    department: 'HR',
+    position: 'HR Manager',
+    isActive: true,
+    lastLogin: new Date(Date.now() - 7200000).toISOString(),
+    loginHistory: [
+      {
+        loginTime: new Date(Date.now() - 7200000).toISOString(),
+        logoutTime: null,
+        ipAddress: '192.168.1.101',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+      }
+    ]
+  },
+  {
+    _id: '3',
+    firstName: 'Michael',
+    lastName: 'Johnson',
+    email: 'michael.johnson@example.com',
+    department: 'Finance',
+    position: 'Financial Analyst',
+    isActive: false,
+    lastLogin: new Date(Date.now() - 604800000).toISOString(),
+    loginHistory: []
+  }
 ];
 
 const Admin = () => {
-  const { user } = useAuth();
-  const [tabValue, setTabValue] = useState(0);
-  const [searchLog, setSearchLog] = useState('');
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [debugMode, setDebugMode] = useState(false);
-  const [apiLogs, setApiLogs] = useState(true);
-  const [userTracking, setUserTracking] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
+  const { user, getToken } = useAuth();
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+  // Fetch admin data
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        setLoading(true);
+        const token = getToken();
+        
+        if (!token) {
+          setError('Authentication token not found. Please login again.');
+          // For demo purposes, use sample data if no token
+          setAdmins(sampleAdmins);
+          setLoading(false);
+          return;
+        }
+        
+        const response = await axios.get('http://localhost:5000/api/master/admins', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data.success) {
+          setAdmins(response.data.admins);
+        } else {
+          setError('Failed to fetch admin data');
+          // For demo purposes, use sample data if API fails
+          setAdmins(sampleAdmins);
+        }
+      } catch (error) {
+        console.error('Error fetching admins:', error);
+        setError(error.response?.data?.message || 'Failed to fetch admin data');
+        // For demo purposes, use sample data if API fails
+        setAdmins(sampleAdmins);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAdmins();
+  }, [getToken]);
+
+  // Handle page change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  const filteredLogs = recentLogs.filter(log => 
-    log.message.toLowerCase().includes(searchLog.toLowerCase()) ||
-    log.type.toLowerCase().includes(searchLog.toLowerCase()) ||
-    log.timestamp.includes(searchLog)
+  // Handle rows per page change
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Handle search
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
+  };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setLoading(true);
+    setError(null);
+    const fetchAdmins = async () => {
+      try {
+        const token = getToken();
+        
+        if (!token) {
+          setError('Authentication token not found. Please login again.');
+          // For demo purposes, use sample data if no token
+          setAdmins(sampleAdmins);
+          setLoading(false);
+          return;
+        }
+        
+        const response = await axios.get('http://localhost:5000/api/master/admins', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data.success) {
+          setAdmins(response.data.admins);
+        } else {
+          setError('Failed to fetch admin data');
+          // For demo purposes, use sample data if API fails
+          setAdmins(sampleAdmins);
+        }
+      } catch (error) {
+        console.error('Error fetching admins:', error);
+        setError(error.response?.data?.message || 'Failed to fetch admin data');
+        // For demo purposes, use sample data if API fails
+        setAdmins(sampleAdmins);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAdmins();
+  };
+
+  // Filter admins based on search term
+  const filteredAdmins = admins.filter(admin => 
+    admin.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.position?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
   
   return (
     <motion.div
@@ -113,15 +230,16 @@ const Admin = () => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Admin Control Panel
+            Admin Management
           </Typography>
           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            Advanced system administration and monitoring tools.
+            View and manage administrator accounts and their login activities.
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Tooltip title="Refresh Data">
             <IconButton 
+              onClick={handleRefresh}
               sx={{ 
                 color: 'rgba(255, 255, 255, 0.7)', 
                 bgcolor: 'rgba(0, 0, 0, 0.2)',
@@ -149,876 +267,207 @@ const Admin = () => {
       </Box>
       
       <Box sx={{ mb: 3 }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={handleTabChange}
-          sx={{
-            mb: 3,
-            '& .MuiTabs-indicator': {
-              backgroundColor: '#1e88e5',
-            },
-            '& .MuiTab-root': {
-              color: 'rgba(255, 255, 255, 0.5)',
-              '&.Mui-selected': {
-                color: '#90caf9',
-              },
-            },
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search admins by name, email, department..."
+          value={searchTerm}
+          onChange={handleSearch}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+              </InputAdornment>
+            ),
           }}
-        >
-          <Tab label="Dashboard" icon={<SpeedIcon />} iconPosition="start" />
-          <Tab label="System" icon={<StorageIcon />} iconPosition="start" />
-          <Tab label="Security" icon={<SecurityIcon />} iconPosition="start" />
-          <Tab label="Logs" icon={<ViewListIcon />} iconPosition="start" />
-          <Tab label="Permissions" icon={<ManageAccountsIcon />} iconPosition="start" />
-        </Tabs>
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              color: 'white',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#1e88e5',
+              }
+            }
+          }}
+        />
       </Box>
       
-      {/* Dashboard Tab */}
-      {tabValue === 0 && (
-        <Grid container spacing={3}>
-          {/* Server Stats */}
-          <Grid item xs={12} md={8}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Server Status
-                  </Typography>
-                } 
-                action={
-                  <Tooltip title="Refresh Server Status">
-                    <IconButton sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      <RefreshIcon />
-                    </IconButton>
-                  </Tooltip>
-                }
-                sx={{ 
-                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-                  pb: 1,
-                }}
-              />
-              <CardContent>
-                <Grid container spacing={3}>
-                  {/* Server Uptime Card */}
-                  <Grid item xs={12}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(30, 136, 229, 0.1)', 
-                      border: '1px solid rgba(100, 180, 255, 0.1)',
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                    }}>
-                      <Box sx={{ 
+      {/* Admin Data Table */}
+      <Paper 
+        sx={{ 
+          width: '100%', 
+          overflow: 'hidden',
+          bgcolor: 'rgba(25, 35, 60, 0.6)',
+          borderRadius: 2,
+          border: '1px solid rgba(100, 180, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>
+        ) : (
+          <>
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell 
+                      sx={{ 
                         bgcolor: 'rgba(30, 136, 229, 0.2)', 
-                        p: 1.5, 
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <PowerIcon sx={{ color: '#42a5f5', fontSize: 28 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
-                          Server Uptime
-                        </Typography>
-                        <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600 }}>
-                          {serverMetrics.uptime}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                          Last restart: {serverMetrics.lastRestart}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ ml: 'auto' }}>
-                        <Button 
-                          variant="outlined" 
-                          size="small"
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Name
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        bgcolor: 'rgba(30, 136, 229, 0.2)', 
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Email
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        bgcolor: 'rgba(30, 136, 229, 0.2)', 
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Last Check-In Time
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        bgcolor: 'rgba(30, 136, 229, 0.2)', 
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Last Check-Out Time
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        bgcolor: 'rgba(30, 136, 229, 0.2)', 
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Status
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredAdmins
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((admin) => {
+                      // Get the most recent login history entry
+                      const lastLogin = admin.loginHistory && admin.loginHistory.length > 0 
+                        ? admin.loginHistory[0] 
+                        : null;
+                      
+                      return (
+                        <TableRow 
+                          key={admin._id}
+                          hover
                           sx={{ 
-                            color: '#f44336', 
-                            borderColor: 'rgba(244, 67, 54, 0.5)',
-                            '&:hover': {
-                              borderColor: '#f44336',
-                              bgcolor: 'rgba(244, 67, 54, 0.1)',
+                            '&:hover': { 
+                              bgcolor: 'rgba(30, 136, 229, 0.1)' 
                             }
                           }}
                         >
-                          Restart
-                        </Button>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                  
-                  {/* CPU Usage */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderRadius: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <SpeedIcon sx={{ color: '#42a5f5', mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          CPU Usage
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600, mb: 1 }}>
-                        {serverMetrics.cpu}%
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={serverMetrics.cpu} 
-                        sx={{ 
-                          height: 6, 
-                          borderRadius: 3,
-                          bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: serverMetrics.cpu > 80 ? '#f44336' : serverMetrics.cpu > 60 ? '#ff9800' : '#4caf50',
-                          }
-                        }}
-                      />
-                    </Box>
-                  </Grid>
-                  
-                  {/* Memory Usage */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderRadius: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <MemoryIcon sx={{ color: '#42a5f5', mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          Memory Usage
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600, mb: 1 }}>
-                        {serverMetrics.memory}%
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={serverMetrics.memory} 
-                        sx={{ 
-                          height: 6, 
-                          borderRadius: 3,
-                          bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: serverMetrics.memory > 80 ? '#f44336' : serverMetrics.memory > 60 ? '#ff9800' : '#4caf50',
-                          }
-                        }}
-                      />
-                    </Box>
-                  </Grid>
-                  
-                  {/* Disk Usage */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderRadius: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <StorageIcon sx={{ color: '#42a5f5', mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          Disk Usage
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600, mb: 1 }}>
-                        {serverMetrics.disk}%
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={serverMetrics.disk} 
-                        sx={{ 
-                          height: 6, 
-                          borderRadius: 3,
-                          bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: serverMetrics.disk > 80 ? '#f44336' : serverMetrics.disk > 60 ? '#ff9800' : '#4caf50',
-                          }
-                        }}
-                      />
-                    </Box>
-                  </Grid>
-                  
-                  {/* Network Usage */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderRadius: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <NetworkIcon sx={{ color: '#42a5f5', mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          Network
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600, mb: 1 }}>
-                        {serverMetrics.network}%
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={serverMetrics.network} 
-                        sx={{ 
-                          height: 6, 
-                          borderRadius: 3,
-                          bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: serverMetrics.network > 80 ? '#f44336' : serverMetrics.network > 60 ? '#ff9800' : '#4caf50',
-                          }
-                        }}
-                      />
-                    </Box>
-                  </Grid>
-                  
-                  {/* Active Sessions */}
-                  <Grid item xs={12}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(0, 0, 0, 0.2)', 
-                      border: '1px solid rgba(100, 180, 255, 0.1)',
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                    }}>
-                      <Box sx={{ 
-                        bgcolor: 'rgba(76, 175, 80, 0.2)', 
-                        p: 1.5, 
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <PeopleIcon sx={{ color: '#81c784', fontSize: 28 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
-                          Active User Sessions
-                        </Typography>
-                        <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600 }}>
-                          {serverMetrics.activeSessions} users online
-                        </Typography>
-                      </Box>
-                      <Box sx={{ ml: 'auto' }}>
-                        <Button 
-                          variant="outlined" 
-                          size="small"
-                          sx={{ 
-                            color: '#42a5f5', 
-                            borderColor: 'rgba(66, 165, 245, 0.5)',
-                            '&:hover': {
-                              borderColor: '#42a5f5',
-                              bgcolor: 'rgba(66, 165, 245, 0.1)',
-                            }
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Quick Actions */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              height: '100%',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Quick Actions
-                  </Typography>
-                } 
-                sx={{ 
-                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-                  pb: 1,
-                }}
-              />
-              <CardContent>
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <LibraryAddCheckIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Run System Check" 
-                      secondary="Verify system integrity and security" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Button 
-                      variant="outlined" 
-                      size="small" 
-                      sx={{ 
-                        color: '#42a5f5', 
-                        borderColor: 'rgba(66, 165, 245, 0.5)',
-                        '&:hover': {
-                          borderColor: '#42a5f5',
-                          bgcolor: 'rgba(66, 165, 245, 0.1)',
-                        }
-                      }}
-                    >
-                      Run
-                    </Button>
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <BackupIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Backup System" 
-                      secondary="Create full system backup" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Button 
-                      variant="outlined" 
-                      size="small" 
-                      sx={{ 
-                        color: '#42a5f5', 
-                        borderColor: 'rgba(66, 165, 245, 0.5)',
-                        '&:hover': {
-                          borderColor: '#42a5f5',
-                          bgcolor: 'rgba(66, 165, 245, 0.1)',
-                        }
-                      }}
-                    >
-                      Backup
-                    </Button>
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <BugIcon sx={{ color: '#ff9800' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Debug Mode" 
-                      secondary="Enable detailed system logging" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Switch 
-                      checked={debugMode} 
-                      onChange={() => setDebugMode(!debugMode)} 
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#ff9800',
-                          '&:hover': {
-                            backgroundColor: alpha('#ff9800', 0.1),
-                          },
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#ff9800',
-                        },
-                      }}
-                    />
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <LockIcon sx={{ color: maintenanceMode ? '#f44336' : '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Maintenance Mode" 
-                      secondary={maintenanceMode ? "System in maintenance mode" : "System accessible to users"} 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Switch 
-                      checked={maintenanceMode} 
-                      onChange={() => setMaintenanceMode(!maintenanceMode)} 
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#f44336',
-                          '&:hover': {
-                            backgroundColor: alpha('#f44336', 0.1),
-                          },
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#f44336',
-                        },
-                      }}
-                    />
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Recent Logs */}
-          <Grid item xs={12}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Recent System Logs
-                  </Typography>
-                } 
-                action={
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      placeholder="Search logs..."
-                      variant="outlined"
-                      size="small"
-                      value={searchLog}
-                      onChange={(e) => setSearchLog(e.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        width: 200,
-                        '& .MuiOutlinedInput-root': {
-                          bgcolor: 'rgba(0, 0, 0, 0.2)',
-                          '&:hover .MuiOutlinedInput-notchedOutline': {
-                            borderColor: 'rgba(100, 180, 255, 0.3)',
-                          },
-                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                            borderColor: '#1e88e5',
-                          },
-                          '& .MuiOutlinedInput-input': {
-                            color: '#fff',
-                          }
-                        },
-                      }}
-                    />
-                    <IconButton sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      <RefreshIcon />
-                    </IconButton>
-                  </Box>
-                }
-                sx={{ 
-                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-                  pb: 1,
-                }}
-              />
-              <CardContent>
-                <List>
-                  {filteredLogs.map((log) => (
-                    <ListItem key={log.id} sx={{ py: 1 }}>
-                      <ListItemIcon>
-                        {log.type === 'error' ? (
-                          <Badge color="error" variant="dot" sx={{ '& .MuiBadge-dot': { width: 10, height: 10 } }}>
-                            <BugIcon sx={{ color: '#f44336' }} />
-                          </Badge>
-                        ) : log.type === 'warning' ? (
-                          <Badge color="warning" variant="dot" sx={{ '& .MuiBadge-dot': { width: 10, height: 10 } }}>
-                            warning
-                          </Badge>
-                        ) : (
-                          <Badge color="info" variant="dot" sx={{ '& .MuiBadge-dot': { width: 10, height: 10 } }}>
-                            info
-                          </Badge>
-                        )}
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={log.message}
-                        secondary={log.timestamp}
-                        primaryTypographyProps={{ 
-                          color: '#fff',
-                          fontSize: '0.9rem',
-                        }}
-                        secondaryTypographyProps={{ 
-                          color: 'rgba(255, 255, 255, 0.5)',
-                          fontSize: '0.8rem',
-                        }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-      
-      {/* System Tab */}
-      {tabValue === 1 && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Alert 
-              severity="info" 
-              variant="outlined"
-              sx={{
-                bgcolor: 'rgba(30, 136, 229, 0.1)',
-                borderColor: 'rgba(30, 136, 229, 0.3)',
-                color: '#90caf9',
-                mb: 3,
+                          <TableCell sx={{ color: 'white' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Avatar 
+                                sx={{ 
+                                  bgcolor: admin.isActive ? '#1e88e5' : 'grey',
+                                  mr: 2,
+                                  width: 36,
+                                  height: 36
+                                }}
+                              >
+                                {admin.firstName?.charAt(0) || admin.lastName?.charAt(0) || admin.email?.charAt(0)}
+                              </Avatar>
+                              <Typography>
+                                {`${admin.firstName || ''} ${admin.lastName || ''}`.trim()}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ color: 'white' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <EmailIcon sx={{ mr: 1, fontSize: 18, color: '#90caf9' }} />
+                              {admin.email}
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ color: 'white' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <AccessTimeIcon sx={{ mr: 1, fontSize: 18, color: '#4caf50' }} />
+                              {lastLogin ? formatDate(lastLogin.loginTime) : 'Never logged in'}
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ color: 'white' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <AccessTimeIcon sx={{ mr: 1, fontSize: 18, color: '#f44336' }} />
+                              {lastLogin && lastLogin.logoutTime ? formatDate(lastLogin.logoutTime) : 'Still active or never logged out'}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={admin.isActive ? 'Active' : 'Inactive'} 
+                              size="small"
+                              icon={admin.isActive ? <CheckCircleIcon /> : <CancelIcon />}
+                              sx={{ 
+                                bgcolor: admin.isActive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                                color: admin.isActive ? '#4caf50' : '#f44336',
+                                borderColor: admin.isActive ? '#4caf50' : '#f44336',
+                                '& .MuiChip-icon': {
+                                  color: admin.isActive ? '#4caf50' : '#f44336',
+                                }
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  {filteredAdmins.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ color: 'white', py: 3 }}>
+                        {searchTerm ? 'No admins match your search criteria' : 'No admins found'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={filteredAdmins.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              sx={{ 
+                color: 'white',
+                '.MuiTablePagination-selectIcon': { color: 'white' },
+                '.MuiTablePagination-select': { color: 'white' },
+                '.MuiTablePagination-selectLabel': { color: 'white' },
+                '.MuiTablePagination-displayedRows': { color: 'white' },
+                '.MuiTablePagination-actions': { color: 'white' },
               }}
-            >
-              The System tab provides tools for managing server configuration, backups, and maintenance.
-            </Alert>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    System Configuration
-                  </Typography>
-                } 
-                sx={{ 
-                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-                  pb: 1,
-                }}
-              />
-              <CardContent>
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <DnsIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="API Logging" 
-                      secondary="Log all API requests and responses" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Switch 
-                      checked={apiLogs} 
-                      onChange={() => setApiLogs(!apiLogs)} 
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#42a5f5',
-                          '&:hover': {
-                            backgroundColor: alpha('#42a5f5', 0.1),
-                          },
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#42a5f5',
-                        },
-                      }}
-                    />
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <PeopleIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="User Activity Tracking" 
-                      secondary="Track detailed user behavior and actions" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Switch 
-                      checked={userTracking} 
-                      onChange={() => setUserTracking(!userTracking)} 
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#42a5f5',
-                          '&:hover': {
-                            backgroundColor: alpha('#42a5f5', 0.1),
-                          },
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#42a5f5',
-                        },
-                      }}
-                    />
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <SettingsIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="UI Settings" 
-                      secondary="Configure user interface preferences" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Switch 
-                      checked={darkMode} 
-                      onChange={() => setDarkMode(!darkMode)} 
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#42a5f5',
-                          '&:hover': {
-                            backgroundColor: alpha('#42a5f5', 0.1),
-                          },
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#42a5f5',
-                        },
-                      }}
-                    />
-                  </ListItem>
-                </List>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    sx={{
-                      bgcolor: '#1e88e5',
-                      '&:hover': {
-                        bgcolor: '#1976d2',
-                      },
-                    }}
-                  >
-                    Save Configuration
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-            }}>
-              <CardHeader 
-                title={
-                  <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Backup & Restore
-                  </Typography>
-                } 
-                sx={{ 
-                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-                  pb: 1,
-                }}
-              />
-              <CardContent>
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CloudUploadIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Create System Backup" 
-                      secondary="Last backup: 2023-04-30 14:22:45" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      sx={{ 
-                        color: '#42a5f5', 
-                        borderColor: 'rgba(66, 165, 245, 0.5)',
-                        '&:hover': {
-                          borderColor: '#42a5f5',
-                          bgcolor: 'rgba(66, 165, 245, 0.1)',
-                        }
-                      }}
-                    >
-                      Backup
-                    </Button>
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <CloudDownloadIcon sx={{ color: '#42a5f5' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Restore from Backup" 
-                      secondary="Select a backup file to restore" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      sx={{ 
-                        color: '#ff9800', 
-                        borderColor: 'rgba(255, 152, 0, 0.5)',
-                        '&:hover': {
-                          borderColor: '#ff9800',
-                          bgcolor: 'rgba(255, 152, 0, 0.1)',
-                        }
-                      }}
-                    >
-                      Restore
-                    </Button>
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  <ListItem>
-                    <ListItemIcon>
-                      <DeleteIcon sx={{ color: '#f44336' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Clean Old Backups" 
-                      secondary="Remove backups older than 30 days" 
-                      primaryTypographyProps={{ color: '#fff' }}
-                      secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                    />
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      sx={{ 
-                        color: '#f44336', 
-                        borderColor: 'rgba(244, 67, 54, 0.5)',
-                        '&:hover': {
-                          borderColor: '#f44336',
-                          bgcolor: 'rgba(244, 67, 54, 0.1)',
-                        }
-                      }}
-                    >
-                      Clean
-                    </Button>
-                  </ListItem>
-                </List>
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', borderRadius: 2 }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-                    Available Backup Schedule
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Switch 
-                        checked={true} 
-                        size="small"
-                        sx={{
-                          mr: 1,
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#42a5f5',
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#42a5f5',
-                          },
-                        }}
-                      />
-                      <Typography variant="body2" sx={{ color: '#fff' }}>
-                        Daily backup at 3:00 AM
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Switch 
-                        checked={true} 
-                        size="small"
-                        sx={{
-                          mr: 1,
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#42a5f5',
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#42a5f5',
-                          },
-                        }}
-                      />
-                      <Typography variant="body2" sx={{ color: '#fff' }}>
-                        Weekly backup on Sunday at 2:00 AM
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Switch 
-                        checked={false} 
-                        size="small"
-                        sx={{
-                          mr: 1,
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#42a5f5',
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#42a5f5',
-                          },
-                        }}
-                      />
-                      <Typography variant="body2" sx={{ color: '#fff' }}>
-                        Monthly backup on 1st day at 1:00 AM
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-      
-      {/* Only render other tabs as placeholders with alerts */}
-      {tabValue > 1 && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Alert 
-              severity="info" 
-              variant="filled"
-              sx={{
-                bgcolor: 'rgba(30, 136, 229, 0.6)',
-                color: '#fff',
-                mb: 3,
-              }}
-            >
-              This tab is currently under development. More features coming soon!
-            </Alert>
-            
-            <Card sx={{ 
-              bgcolor: 'rgba(25, 35, 60, 0.6)',
-              borderRadius: 2,
-              border: '1px solid rgba(100, 180, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-              p: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Box sx={{ 
-                p: 3, 
-                bgcolor: alpha('#1e88e5', 0.1), 
-                borderRadius: '50%',
-                mb: 3,
-              }}>
-                {tabValue === 2 ? (
-                  <SecurityIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
-                ) : tabValue === 3 ? (
-                  <ViewListIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
-                ) : (
-                  <ManageAccountsIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
-                )}
-              </Box>
-              <Typography variant="h5" sx={{ color: '#fff', mb: 2, textAlign: 'center' }}>
-                {tabValue === 2 ? "Security Management" : 
-                 tabValue === 3 ? "System Logs" : 
-                 "User Permissions"}
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', mb: 3 }}>
-                This section is under active development. Check back soon for advanced controls.
-              </Typography>
-              <Button
-                variant="contained"
-                sx={{
-                  bgcolor: '#1e88e5',
-                  '&:hover': {
-                    bgcolor: '#1976d2',
-                  },
-                  borderRadius: 2,
-                  px: 3,
-                }}
-              >
-                {tabValue === 2 ? "Configure Security" : 
-                 tabValue === 3 ? "View Available Logs" : 
-                 "Manage Permissions"}
-              </Button>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
+            />
+          </>
+        )}
+      </Paper>
     </motion.div>
   );
 };

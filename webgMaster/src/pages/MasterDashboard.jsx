@@ -11,7 +11,8 @@ import {
   Alert,
   IconButton, 
   Divider, 
-  Stack 
+  Stack,
+  Button
 } from '@mui/material';
 import {
   Timeline,
@@ -39,6 +40,7 @@ import {
   Legend
 } from 'chart.js';  // Change from 'chart' to 'chart.js'
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 // Add these imports at the top with other imports
 import PeopleIcon from '@mui/icons-material/People';
@@ -65,6 +67,7 @@ ChartJS.register(
 );
 
 function MasterDashboard() {
+  const { getToken, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -92,7 +95,14 @@ function MasterDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token'); // Assuming you store the token in localStorage
+        // Get token from AuthContext
+        const token = getToken();
+        
+        if (!token) {
+          setError('Authentication token not found. Please login again.');
+          setLoading(false);
+          return;
+        }
         
         // Fetch dashboard stats
         const [statsResponse, attendanceResponse] = await Promise.all([
@@ -116,8 +126,13 @@ function MasterDashboard() {
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    if (user) {
+      fetchDashboardData();
+    } else {
+      setError('User not authenticated. Please login.');
+      setLoading(false);
+    }
+  }, [getToken, user]);
 
   // Transform backend data for stats cards
   const statsData = [
@@ -126,24 +141,28 @@ function MasterDashboard() {
       value: stats.totalUsers,
       icon: <PeopleIcon />,
       color: blue[500],
+      description: 'Total registered users in the system'
     },
     {
-      label: 'Active Today',
+      label: 'Present Today',
       value: todayAttendance.summary.present,
       icon: <EventAvailableIcon />,
       color: green[500],
+      description: 'Users who checked in today'
     },
     {
       label: 'Late Today',
       value: todayAttendance.summary.late,
       icon: <AccessTimeIcon />,
       color: orange[500],
+      description: 'Users who checked in late today'
     },
     {
       label: 'Active Admins',
       value: stats.totalAdmins,
       icon: <AdminPanelSettingsIcon />,
       color: purple[500],
+      description: 'Total admin users with access'
     },
   ];
 
@@ -307,8 +326,11 @@ function MasterDashboard() {
                         <Typography variant="h5" sx={{ fontWeight: 700 }}>
                           {stat.value}
                         </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        <Typography variant="body2" sx={{ opacity: 0.8, fontWeight: 600 }}>
                           {stat.label}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.6, display: 'block', mt: 0.5 }}>
+                          {stat.description}
                         </Typography>
                       </Box>
                     </CardContent>
@@ -318,7 +340,147 @@ function MasterDashboard() {
             ))}
           </Grid>
 
-          {/* New Quick Actions Section */}
+          {/* Attendance Summary Section */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center' }}>
+              <TrendingUpIcon sx={{ mr: 1 }} /> Attendance Overview
+            </Typography>
+            <Card sx={{ 
+              background: 'rgba(255,255,255,0.08)', 
+              backdropFilter: 'blur(10px)',
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+            }}>
+              <CardContent>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(255,255,255,0.05)' }}>
+                      <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+                        Today's Summary
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: green[500],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Present: {todayAttendance.summary.present}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: orange[500],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Late: {todayAttendance.summary.late}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: red[500],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Absent: {todayAttendance.summary.absent}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: purple[500],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Half Day: {todayAttendance.summary.halfDay}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(255,255,255,0.05)' }}>
+                      <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+                        User Statistics
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: blue[500],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Total Users: {stats.totalUsers}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: blue[300],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Active Users: {stats.activeUsers}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: purple[500],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Total Admins: {stats.totalAdmins}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ 
+                              width: 10, 
+                              height: 10, 
+                              borderRadius: '50%', 
+                              bgcolor: green[300],
+                              mr: 1 
+                            }} />
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Avg. Check-in: {todayAttendance.summary.averageCheckInTime}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Box>
+          
+          {/* Quick Actions Section */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>Quick Actions</Typography>
             <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 1 }}>
@@ -549,7 +711,7 @@ function MasterDashboard() {
         </Box>
       </Fade>
       
-      {/* Loader */}
+      {/* Enhanced Loader */}
       {loading && (
         <Box
           sx={{
@@ -557,6 +719,7 @@ function MasterDashboard() {
             inset: 0,
             zIndex: 2000,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             background: 'rgba(30,36,58,0.95)',
@@ -567,8 +730,86 @@ function MasterDashboard() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <CircularProgress size={70} thickness={4} sx={{ color: blue[400] }} />
+            <CircularProgress size={80} thickness={4} sx={{ color: blue[400] }} />
           </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mt: 3, 
+                color: 'white',
+                fontWeight: 500,
+                textAlign: 'center'
+              }}
+            >
+              Loading Dashboard Data...
+            </Typography>
+          </motion.div>
+        </Box>
+      )}
+      
+      {/* Error Display with Retry Button */}
+      {error && !loading && (
+        <Box
+          sx={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(30,36,58,0.95)',
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Alert 
+              severity="error" 
+              variant="filled"
+              sx={{ 
+                fontSize: '1rem',
+                mb: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+              }}
+            >
+              {error}
+            </Alert>
+          </motion.div>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: 'white',
+              mb: 3,
+              textAlign: 'center',
+              maxWidth: 500,
+              px: 2
+            }}
+          >
+            There was a problem loading the dashboard data. This could be due to an authentication issue.
+            Please make sure you are logged in with a valid master account.
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={() => window.location.href = '/login'}
+            sx={{
+              mt: 2,
+              boxShadow: '0 4px 12px rgba(30,136,229,0.5)',
+              '&:hover': {
+                boxShadow: '0 6px 16px rgba(30,136,229,0.7)',
+              }
+            }}
+          >
+            Go to Login
+          </Button>
         </Box>
       )}
     </Box>

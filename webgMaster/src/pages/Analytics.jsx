@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -22,7 +22,9 @@ import {
   Chip,
   Avatar,
   alpha,
-  Tooltip
+  Tooltip,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -41,95 +43,274 @@ import {
   DevicesOther as DevicesIcon,
   Public as PublicIcon,
   AccessTime as AccessTimeIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  LocationOn as LocationOnIcon,
+  Work as WorkIcon,
+  Event as EventIcon,
+  Group as GroupIcon,
+  Error as ErrorIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line
+} from 'recharts';
 
-// Dummy data for analytics
-const generateAnalyticsData = () => {
-  return {
-    summary: {
-      totalUsers: 1248,
-      activeUsers: 856,
-      userGrowth: 12.4,
-      avgSessionTime: '3m 42s',
-      totalSessions: 5672,
-      bounceRate: 23.8,
-      conversionRate: 8.6
-    },
-    devices: [
-      { name: 'Desktop', value: 45, color: '#1e88e5' },
-      { name: 'Mobile', value: 35, color: '#43a047' },
-      { name: 'Tablet', value: 15, color: '#fb8c00' },
-      { name: 'Other', value: 5, color: '#757575' }
-    ],
-    topPages: [
-      { page: 'Dashboard', views: 3452, timeSpent: '2m 15s', bounceRate: 21.3 },
-      { page: 'User Management', views: 2318, timeSpent: '4m 32s', bounceRate: 18.7 },
-      { page: 'Analytics', views: 1984, timeSpent: '3m 08s', bounceRate: 25.2 },
-      { page: 'Settings', views: 1245, timeSpent: '1m 45s', bounceRate: 35.1 },
-      { page: 'Admin Panel', views: 986, timeSpent: '5m 24s', bounceRate: 15.8 }
-    ],
-    topUsers: [
-      { name: 'John Smith', role: 'Admin', sessions: 48, timeSpent: '3h 24m', lastActive: '2 minutes ago' },
-      { name: 'Emma Johnson', role: 'Manager', sessions: 35, timeSpent: '2h 12m', lastActive: '15 minutes ago' },
-      { name: 'Michael Davis', role: 'User', sessions: 29, timeSpent: '1h 45m', lastActive: '32 minutes ago' },
-      { name: 'Sophia Wilson', role: 'Admin', sessions: 27, timeSpent: '2h 02m', lastActive: '1 hour ago' },
-      { name: 'William Brown', role: 'User', sessions: 24, timeSpent: '1h 18m', lastActive: '3 hours ago' }
-    ],
-    locations: [
-      { country: 'United States', users: 548, percentage: 43.9 },
-      { country: 'United Kingdom', users: 186, percentage: 14.9 },
-      { country: 'Canada', users: 132, percentage: 10.6 },
-      { country: 'Australia', users: 98, percentage: 7.9 },
-      { country: 'Germany', users: 87, percentage: 7.0 },
-      { country: 'Other', users: 197, percentage: 15.8 }
-    ]
-  };
+// Chart Components
+const AttendanceBarChart = ({ data, height = 300 }) => {
+  if (!data || data.length === 0) {
+    return (
+      <Box
+        sx={{
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          bgcolor: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: 2,
+          border: '1px dashed rgba(100, 180, 255, 0.2)',
+        }}
+      >
+        <BarChartIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          No attendance data available
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ width: '100%', height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+          <XAxis 
+            dataKey="date" 
+            stroke="rgba(255, 255, 255, 0.6)"
+            tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12 }}
+          />
+          <YAxis 
+            stroke="rgba(255, 255, 255, 0.6)"
+            tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12 }}
+          />
+          <RechartsTooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(25, 35, 60, 0.95)', 
+              border: '1px solid rgba(100, 180, 255, 0.2)',
+              color: '#fff',
+              borderRadius: '4px'
+            }} 
+          />
+          <Legend 
+            wrapperStyle={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          />
+          <Bar dataKey="present" name="Present" fill="#4caf50" />
+          <Bar dataKey="absent" name="Absent" fill="#f44336" />
+          <Bar dataKey="late" name="Late" fill="#ff9800" />
+        </BarChart>
+      </ResponsiveContainer>
+    </Box>
+  );
 };
 
-// Chart Component Placeholders
-const BarChartPlaceholder = ({ height = 250 }) => (
-  <Box
-    sx={{
-      height,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'column',
-      bgcolor: 'rgba(0, 0, 0, 0.1)',
-      borderRadius: 2,
-      border: '1px dashed rgba(100, 180, 255, 0.2)',
-    }}
-  >
-    <BarChartIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
-    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-      Bar Chart Visualization
-    </Typography>
-  </Box>
-);
+const StatusPieChart = ({ data, height = 300 }) => {
+  if (!data) {
+    return (
+      <Box
+        sx={{
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          bgcolor: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: 2,
+          border: '1px dashed rgba(100, 180, 255, 0.2)',
+        }}
+      >
+        <DonutLargeIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          No status data available
+        </Typography>
+      </Box>
+    );
+  }
 
-const LineChartPlaceholder = ({ height = 250 }) => (
-  <Box
-    sx={{
-      height,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'column',
-      bgcolor: 'rgba(0, 0, 0, 0.1)',
-      borderRadius: 2,
-      border: '1px dashed rgba(100, 180, 255, 0.2)',
-    }}
-  >
-    <TimelineIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
-    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-      Line Chart Visualization
-    </Typography>
-  </Box>
-);
+  const pieData = [
+    { name: 'Present', value: data.presentUsers || 0, color: '#4caf50' },
+    { name: 'Absent', value: data.absentUsers || 0, color: '#f44336' },
+    { name: 'Late', value: data.lateUsers || 0, color: '#ff9800' }
+  ];
 
-const DonutChartPlaceholder = ({ height = 250 }) => (
+  return (
+    <Box sx={{ width: '100%', height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={pieData}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={5}
+            dataKey="value"
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            labelLine={false}
+          >
+            {pieData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <RechartsTooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(25, 35, 60, 0.95)', 
+              border: '1px solid rgba(100, 180, 255, 0.2)',
+              color: '#fff',
+              borderRadius: '4px'
+            }} 
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+};
+
+const DepartmentDistributionChart = ({ users, height = 300 }) => {
+  if (!users || users.length === 0) {
+    return (
+      <Box
+        sx={{
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          bgcolor: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: 2,
+          border: '1px dashed rgba(100, 180, 255, 0.2)',
+        }}
+      >
+        <WorkIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          No department data available
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Group users by department
+  const departmentCounts = users.reduce((acc, user) => {
+    const dept = user.department || 'Unknown';
+    acc[dept] = (acc[dept] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Convert to array for chart
+  const departmentData = Object.entries(departmentCounts).map(([name, value], index) => ({
+    name,
+    value,
+    color: [
+      '#1e88e5', '#4caf50', '#ff9800', '#f44336', '#9c27b0', 
+      '#00bcd4', '#ffeb3b', '#795548', '#607d8b', '#e91e63'
+    ][index % 10]
+  }));
+
+  return (
+    <Box sx={{ width: '100%', height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={departmentData}
+            cx="50%"
+            cy="50%"
+            outerRadius={80}
+            dataKey="value"
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          >
+            {departmentData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <RechartsTooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(25, 35, 60, 0.95)', 
+              border: '1px solid rgba(100, 180, 255, 0.2)',
+              color: '#fff',
+              borderRadius: '4px'
+            }} 
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+};
+
+const UserActivityLineChart = ({ data, height = 300 }) => {
+  if (!data || data.length === 0) {
+    return (
+      <Box
+        sx={{
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          bgcolor: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: 2,
+          border: '1px dashed rgba(100, 180, 255, 0.2)',
+        }}
+      >
+        <TimelineIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          No activity data available
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ width: '100%', height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+          <XAxis 
+            dataKey="date" 
+            stroke="rgba(255, 255, 255, 0.6)"
+            tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12 }}
+          />
+          <YAxis 
+            stroke="rgba(255, 255, 255, 0.6)"
+            tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12 }}
+          />
+          <RechartsTooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(25, 35, 60, 0.95)', 
+              border: '1px solid rgba(100, 180, 255, 0.2)',
+              color: '#fff',
+              borderRadius: '4px'
+            }} 
+          />
+          <Legend 
+            wrapperStyle={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          />
+          <Line type="monotone" dataKey="total" name="Total Users" stroke="#1e88e5" activeDot={{ r: 8 }} />
+          <Line type="monotone" dataKey="active" name="Active Users" stroke="#4caf50" />
+        </LineChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+};
+
+const LoadingPlaceholder = ({ height = 300, message = "Loading data..." }) => (
   <Box
     sx={{
       height,
@@ -142,18 +323,62 @@ const DonutChartPlaceholder = ({ height = 250 }) => (
       border: '1px dashed rgba(100, 180, 255, 0.2)',
     }}
   >
-    <DonutLargeIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+    <CircularProgress size={40} sx={{ color: 'rgba(100, 180, 255, 0.6)', mb: 2 }} />
     <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-      Donut Chart Visualization
+      {message}
     </Typography>
   </Box>
 );
 
 const Analytics = () => {
-  const [data] = useState(generateAnalyticsData());
+  const { getToken } = useAuth();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('7d');
   const [tabValue, setTabValue] = useState(0);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const token = getToken();
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
+        
+        // Fetch dashboard stats and users in parallel
+        const [statsResponse, usersResponse] = await Promise.all([
+          axios.get('http://localhost:5000/api/dashboard/stats', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get('http://localhost:5000/api/admin/users', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        if (statsResponse.data.success) {
+          setDashboardData(statsResponse.data.stats);
+        }
+        
+        if (usersResponse.data.success) {
+          setUsers(usersResponse.data.users || []);
+        }
+      } catch (err) {
+        console.error('Error fetching analytics data:', err);
+        setError(err.response?.data?.message || 'Failed to fetch analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [getToken]);
   
   const handleFilterClick = (event) => {
     setFilterAnchorEl(event.currentTarget);
@@ -172,6 +397,41 @@ const Analytics = () => {
     setTabValue(newValue);
   };
   
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = getToken();
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+      
+      // Fetch dashboard stats and users in parallel
+      const [statsResponse, usersResponse] = await Promise.all([
+        axios.get('http://localhost:5000/api/dashboard/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get('http://localhost:5000/api/admin/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      
+      if (statsResponse.data.success) {
+        setDashboardData(statsResponse.data.stats);
+      }
+      
+      if (usersResponse.data.success) {
+        setUsers(usersResponse.data.users || []);
+      }
+    } catch (err) {
+      console.error('Error refreshing analytics data:', err);
+      setError(err.response?.data?.message || 'Failed to refresh analytics data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Determine label for time range
   const getTimeRangeLabel = () => {
     switch (timeRange) {
@@ -181,6 +441,17 @@ const Analytics = () => {
       case '90d': return 'Last 90 Days';
       default: return 'Custom Range';
     }
+  };
+  
+  // Generate user activity data for the line chart
+  const generateUserActivityData = () => {
+    if (!dashboardData?.weeklyAttendance) return [];
+    
+    return dashboardData.weeklyAttendance.map(day => ({
+      date: day.date,
+      total: day.total,
+      active: day.present + day.late
+    }));
   };
   
   return (
@@ -205,7 +476,7 @@ const Analytics = () => {
             Analytics Dashboard
           </Typography>
           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            User activity insights and system performance metrics.
+            User activity insights and attendance metrics.
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -226,6 +497,7 @@ const Analytics = () => {
           </Button>
           <Tooltip title="Refresh Data">
             <IconButton 
+              onClick={handleRefresh}
               sx={{ 
                 color: 'rgba(255, 255, 255, 0.7)', 
                 bgcolor: 'rgba(0, 0, 0, 0.2)',
@@ -248,6 +520,22 @@ const Analytics = () => {
           </Tooltip>
         </Box>
       </Box>
+      
+      {/* Error message if any */}
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: 3, 
+            bgcolor: 'rgba(244, 67, 54, 0.1)', 
+            color: '#ef5350',
+            border: '1px solid rgba(244, 67, 54, 0.2)',
+            '& .MuiAlert-icon': { color: '#ef5350' }
+          }}
+        >
+          {error}
+        </Alert>
+      )}
       
       {/* Time Range Menu */}
       <Menu
@@ -303,9 +591,13 @@ const Analytics = () => {
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
                     Total Users
                   </Typography>
-                  <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
-                    {data.summary.totalUsers.toLocaleString()}
-                  </Typography>
+                  {loading ? (
+                    <CircularProgress size={24} sx={{ color: '#42a5f5', my: 1 }} />
+                  ) : (
+                    <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
+                      {dashboardData?.totalCounts?.users || 0}
+                    </Typography>
+                  )}
                 </Box>
                 <Box 
                   sx={{ 
@@ -321,19 +613,8 @@ const Analytics = () => {
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                <Chip 
-                  icon={<TrendingUpIcon fontSize="small" />} 
-                  label={`+${data.summary.userGrowth}%`} 
-                  size="small"
-                  sx={{ 
-                    bgcolor: alpha('#4caf50', 0.15), 
-                    color: '#81c784', 
-                    borderRadius: 1,
-                    '& .MuiChip-icon': { color: '#81c784' }
-                  }}
-                />
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', ml: 1 }}>
-                  vs. previous period
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Total registered users
                 </Typography>
               </Box>
             </CardContent>
@@ -359,9 +640,13 @@ const Analytics = () => {
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
                     Active Users
                   </Typography>
-                  <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
-                    {data.summary.activeUsers.toLocaleString()}
-                  </Typography>
+                  {loading ? (
+                    <CircularProgress size={24} sx={{ color: '#81c784', my: 1 }} />
+                  ) : (
+                    <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
+                      {dashboardData?.todayCounts?.activeUsers || 0}
+                    </Typography>
+                  )}
                 </Box>
                 <Box 
                   sx={{ 
@@ -378,7 +663,9 @@ const Analytics = () => {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                  {Math.round((data.summary.activeUsers / data.summary.totalUsers) * 100)}% of total users
+                  {dashboardData?.totalCounts?.users ? 
+                    `${Math.round((dashboardData.todayCounts.activeUsers / dashboardData.totalCounts.users) * 100)}% of total users` : 
+                    'Active in last 24 hours'}
                 </Typography>
               </Box>
             </CardContent>
@@ -402,11 +689,15 @@ const Analytics = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
-                    Avg. Session Time
+                    Today's Attendance
                   </Typography>
-                  <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
-                    {data.summary.avgSessionTime}
-                  </Typography>
+                  {loading ? (
+                    <CircularProgress size={24} sx={{ color: '#ffb74d', my: 1 }} />
+                  ) : (
+                    <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
+                      {dashboardData?.todayCounts?.attendance || 0}
+                    </Typography>
+                  )}
                 </Box>
                 <Box 
                   sx={{ 
@@ -418,23 +709,12 @@ const Analytics = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  <AccessTimeIcon sx={{ color: '#ffb74d', fontSize: 28 }} />
+                  <EventIcon sx={{ color: '#ffb74d', fontSize: 28 }} />
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                <Chip 
-                  icon={<TrendingUpIcon fontSize="small" />} 
-                  label="+18.2%" 
-                  size="small"
-                  sx={{ 
-                    bgcolor: alpha('#4caf50', 0.15), 
-                    color: '#81c784', 
-                    borderRadius: 1,
-                    '& .MuiChip-icon': { color: '#81c784' }
-                  }}
-                />
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', ml: 1 }}>
-                  vs. previous period
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  {dashboardData?.todayCounts?.presentUsers || 0} present, {dashboardData?.todayCounts?.lateUsers || 0} late
                 </Typography>
               </Box>
             </CardContent>
@@ -458,11 +738,15 @@ const Analytics = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 0.5 }}>
-                    Bounce Rate
+                    Location Updates
                   </Typography>
-                  <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
-                    {data.summary.bounceRate}%
-                  </Typography>
+                  {loading ? (
+                    <CircularProgress size={24} sx={{ color: '#ef5350', my: 1 }} />
+                  ) : (
+                    <Typography variant="h4" sx={{ color: '#fff', fontWeight: 600 }}>
+                      {dashboardData?.todayCounts?.locations || 0}
+                    </Typography>
+                  )}
                 </Box>
                 <Box 
                   sx={{ 
@@ -474,23 +758,12 @@ const Analytics = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  <TrendingDownIcon sx={{ color: '#ef5350', fontSize: 28 }} />
+                  <LocationOnIcon sx={{ color: '#ef5350', fontSize: 28 }} />
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                <Chip 
-                  icon={<TrendingDownIcon fontSize="small" />} 
-                  label="-2.3%" 
-                  size="small"
-                  sx={{ 
-                    bgcolor: alpha('#4caf50', 0.15), 
-                    color: '#81c784', 
-                    borderRadius: 1,
-                    '& .MuiChip-icon': { color: '#81c784' }
-                  }}
-                />
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', ml: 1 }}>
-                  vs. previous period
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Today's location check-ins
                 </Typography>
               </Box>
             </CardContent>
@@ -516,15 +789,14 @@ const Analytics = () => {
             },
           }}
         >
-          <Tab label="Overview" />
+          <Tab label="Attendance" />
           <Tab label="User Activity" />
-          <Tab label="Content" />
-          <Tab label="Devices" />
+          <Tab label="Departments" />
           <Tab label="Locations" />
         </Tabs>
       </Box>
       
-      {/* Overview Tab */}
+      {/* Attendance Tab */}
       {tabValue === 0 && (
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
@@ -539,29 +811,11 @@ const Analytics = () => {
               <CardHeader 
                 title={
                   <Typography variant="h6" sx={{ color: '#fff' }}>
-                    User Activity Trends
+                    Weekly Attendance Trends
                   </Typography>
                 } 
                 action={
                   <Box sx={{ display: 'flex' }}>
-                    <Button
-                      size="small"
-                      sx={{ color: 'rgba(255, 255, 255, 0.7)', mr: 1 }}
-                    >
-                      Daily
-                    </Button>
-                    <Button
-                      size="small"
-                      sx={{ color: '#42a5f5' }}
-                    >
-                      Weekly
-                    </Button>
-                    <Button
-                      size="small"
-                      sx={{ color: 'rgba(255, 255, 255, 0.7)', ml: 1 }}
-                    >
-                      Monthly
-                    </Button>
                     <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)', ml: 1 }}>
                       <MoreVertIcon fontSize="small" />
                     </IconButton>
@@ -573,7 +827,29 @@ const Analytics = () => {
                 }}
               />
               <CardContent>
-                <LineChartPlaceholder height={300} />
+                {loading ? (
+                  <LoadingPlaceholder height={300} message="Loading attendance data..." />
+                ) : dashboardData?.weeklyAttendance ? (
+                  <AttendanceBarChart data={dashboardData.weeklyAttendance} height={300} />
+                ) : (
+                  <Box
+                    sx={{
+                      height: 300,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      borderRadius: 2,
+                      border: '1px dashed rgba(100, 180, 255, 0.2)',
+                    }}
+                  >
+                    <ErrorIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      No attendance data available
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -590,7 +866,7 @@ const Analytics = () => {
               <CardHeader 
                 title={
                   <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Device Distribution
+                    Today's Attendance Status
                   </Typography>
                 } 
                 action={
@@ -604,32 +880,29 @@ const Analytics = () => {
                 }}
               />
               <CardContent>
-                <DonutChartPlaceholder height={300} />
-                <Box sx={{ mt: 2 }}>
-                  <Grid container spacing={1}>
-                    {data.devices.map((device) => (
-                      <Grid item xs={6} key={device.name}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Box 
-                            sx={{ 
-                              width: 12, 
-                              height: 12, 
-                              borderRadius: '50%', 
-                              bgcolor: device.color,
-                              mr: 1 
-                            }} 
-                          />
-                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                            {device.name}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: '#fff', ml: 'auto', fontWeight: 600 }}>
-                            {device.value}%
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
+                {loading ? (
+                  <LoadingPlaceholder height={300} message="Loading status data..." />
+                ) : dashboardData?.todayCounts ? (
+                  <StatusPieChart data={dashboardData.todayCounts} height={300} />
+                ) : (
+                  <Box
+                    sx={{
+                      height: 300,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      borderRadius: 2,
+                      border: '1px dashed rgba(100, 180, 255, 0.2)',
+                    }}
+                  >
+                    <ErrorIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      No status data available
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -645,7 +918,7 @@ const Analytics = () => {
               <CardHeader 
                 title={
                   <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Top Pages
+                    Recent Activities
                   </Typography>
                 } 
                 action={
@@ -659,56 +932,91 @@ const Analytics = () => {
                 }}
               />
               <CardContent>
-                <Box sx={{ width: '100%', overflow: 'auto' }}>
-                  <Box sx={{ minWidth: 600 }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      p: 1.5, 
-                      borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-                      bgcolor: 'rgba(0, 0, 0, 0.2)',
-                    }}>
-                      <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '40%' }}>
-                        Page
-                      </Typography>
-                      <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'center' }}>
-                        Views
-                      </Typography>
-                      <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'center' }}>
-                        Avg. Time
-                      </Typography>
-                      <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'center' }}>
-                        Bounce Rate
-                      </Typography>
-                    </Box>
-                    
-                    {data.topPages.map((page, index) => (
-                      <Box 
-                        key={index}
-                        sx={{ 
-                          display: 'flex', 
-                          p: 1.5, 
-                          borderBottom: '1px solid rgba(100, 180, 255, 0.05)',
-                          '&:hover': {
-                            bgcolor: 'rgba(100, 180, 255, 0.05)',
-                          }
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ color: '#fff', width: '40%', fontWeight: 500 }}>
-                          {page.page}
+                {loading ? (
+                  <LoadingPlaceholder height={200} message="Loading activities..." />
+                ) : dashboardData?.recentActivities && dashboardData.recentActivities.length > 0 ? (
+                  <Box sx={{ width: '100%', overflow: 'auto' }}>
+                    <Box sx={{ minWidth: 600 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        p: 1.5, 
+                        borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
+                        bgcolor: 'rgba(0, 0, 0, 0.2)',
+                      }}>
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '30%' }}>
+                          User
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'center' }}>
-                          {page.views.toLocaleString()}
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '30%' }}>
+                          Action
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'center' }}>
-                          {page.timeSpent}
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%' }}>
+                          Type
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'center' }}>
-                          {page.bounceRate}%
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'right' }}>
+                          Time
                         </Typography>
                       </Box>
-                    ))}
+                      
+                      {dashboardData.recentActivities.map((activity, index) => (
+                        <Box 
+                          key={activity.id || index}
+                          sx={{ 
+                            display: 'flex', 
+                            p: 1.5, 
+                            borderBottom: '1px solid rgba(100, 180, 255, 0.05)',
+                            '&:hover': {
+                              bgcolor: 'rgba(100, 180, 255, 0.05)',
+                            }
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ color: '#fff', width: '30%', fontWeight: 500 }}>
+                            {activity.user}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#fff', width: '30%' }}>
+                            {activity.action}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#fff', width: '20%' }}>
+                            <Chip 
+                              label={activity.type} 
+                              size="small"
+                              sx={{ 
+                                bgcolor: activity.type === 'admin_login' ? alpha('#1e88e5', 0.15) : 
+                                        activity.type === 'attendance' ? alpha('#4caf50', 0.15) : 
+                                        alpha('#ff9800', 0.15),
+                                color: activity.type === 'admin_login' ? '#42a5f5' : 
+                                       activity.type === 'attendance' ? '#66bb6a' : 
+                                       '#ffb74d',
+                                height: 20,
+                                fontSize: '0.7rem',
+                              }}
+                            />
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'right' }}>
+                            {new Date(activity.time).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
                   </Box>
-                </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      height: 200,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      borderRadius: 2,
+                      border: '1px dashed rgba(100, 180, 255, 0.2)',
+                    }}
+                  >
+                    <ErrorIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      No recent activities found
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -729,7 +1037,7 @@ const Analytics = () => {
               <CardHeader 
                 title={
                   <Typography variant="h6" sx={{ color: '#fff' }}>
-                    User Sessions Over Time
+                    User Activity Over Time
                   </Typography>
                 } 
                 action={
@@ -743,7 +1051,11 @@ const Analytics = () => {
                 }}
               />
               <CardContent>
-                <BarChartPlaceholder height={300} />
+                {loading ? (
+                  <LoadingPlaceholder height={300} message="Loading activity data..." />
+                ) : (
+                  <UserActivityLineChart data={generateUserActivityData()} height={300} />
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -759,7 +1071,7 @@ const Analytics = () => {
               <CardHeader 
                 title={
                   <Typography variant="h6" sx={{ color: '#fff' }}>
-                    Top Active Users
+                    Active Users
                   </Typography>
                 } 
                 action={
@@ -773,70 +1085,237 @@ const Analytics = () => {
                 }}
               />
               <CardContent sx={{ px: 1 }}>
-                <List>
-                  {data.topUsers.map((user, index) => (
-                    <ListItem 
-                      key={index}
-                      sx={{ 
-                        borderBottom: index !== data.topUsers.length - 1 ? '1px solid rgba(100, 180, 255, 0.05)' : 'none',
-                        py: 1.5,
-                      }}
-                    >
-                      <ListItemIcon>
-                        <Avatar 
-                          sx={{ 
-                            bgcolor: user.role === 'Admin' ? '#1e88e5' : 
-                                    user.role === 'Manager' ? '#43a047' : '#ff9800',
-                            width: 40,
-                            height: 40,
-                          }}
-                        >
-                          {user.name.charAt(0)}
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body2" sx={{ color: '#fff', fontWeight: 500 }}>
-                              {user.name}
+                {loading ? (
+                  <LoadingPlaceholder height={300} message="Loading user data..." />
+                ) : users && users.length > 0 ? (
+                  <List>
+                    {users.slice(0, 5).map((user, index) => (
+                      <ListItem 
+                        key={user._id || index}
+                        sx={{ 
+                          borderBottom: index !== Math.min(users.length, 5) - 1 ? '1px solid rgba(100, 180, 255, 0.05)' : 'none',
+                          py: 1.5,
+                        }}
+                      >
+                        <ListItemIcon>
+                          <Avatar 
+                            sx={{ 
+                              bgcolor: user.is_active ? '#4caf50' : '#f44336',
+                              width: 40,
+                              height: 40,
+                            }}
+                          >
+                            {user.name.charAt(0)}
+                          </Avatar>
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Typography variant="body2" sx={{ color: '#fff', fontWeight: 500 }}>
+                                {user.name}
+                              </Typography>
+                              <Chip 
+                                label={user.is_active ? 'Active' : 'Inactive'} 
+                                size="small"
+                                sx={{ 
+                                  ml: 1, 
+                                  bgcolor: user.is_active ? alpha('#4caf50', 0.15) : alpha('#f44336', 0.15),
+                                  color: user.is_active ? '#66bb6a' : '#ef5350',
+                                  height: 20,
+                                  fontSize: '0.7rem',
+                                }}
+                              />
+                            </Box>
+                          }
+                          secondary={
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                              {user.department} • {user.mobile}
                             </Typography>
-                            <Chip 
-                              label={user.role} 
-                              size="small"
-                              sx={{ 
-                                ml: 1, 
-                                bgcolor: user.role === 'Admin' ? alpha('#1e88e5', 0.15) : 
-                                        user.role === 'Manager' ? alpha('#43a047', 0.15) : 
-                                        alpha('#ff9800', 0.15),
-                                color: user.role === 'Admin' ? '#42a5f5' : 
-                                       user.role === 'Manager' ? '#66bb6a' : 
-                                       '#ffb74d',
-                                height: 20,
-                                fontSize: '0.7rem',
-                              }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                            {user.sessions} sessions • {user.timeSpent} total time
-                          </Typography>
-                        }
-                      />
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                        {user.lastActive}
-                      </Typography>
-                    </ListItem>
-                  ))}
-                </List>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Box
+                    sx={{
+                      height: 300,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      borderRadius: 2,
+                      border: '1px dashed rgba(100, 180, 255, 0.2)',
+                    }}
+                  >
+                    <ErrorIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      No user data available
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>
         </Grid>
       )}
       
-      {/* Display placeholder for other tabs */}
-      {tabValue > 1 && (
+      {/* Departments Tab */}
+      {tabValue === 2 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ 
+              bgcolor: 'rgba(25, 35, 60, 0.6)',
+              borderRadius: 2,
+              border: '1px solid rgba(100, 180, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+              height: '100%',
+            }}>
+              <CardHeader 
+                title={
+                  <Typography variant="h6" sx={{ color: '#fff' }}>
+                    Department Distribution
+                  </Typography>
+                } 
+                action={
+                  <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+                }
+                sx={{ 
+                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
+                  pb: 1,
+                }}
+              />
+              <CardContent>
+                {loading ? (
+                  <LoadingPlaceholder height={300} message="Loading department data..." />
+                ) : (
+                  <DepartmentDistributionChart users={users} height={300} />
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Card sx={{ 
+              bgcolor: 'rgba(25, 35, 60, 0.6)',
+              borderRadius: 2,
+              border: '1px solid rgba(100, 180, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+              height: '100%',
+            }}>
+              <CardHeader 
+                title={
+                  <Typography variant="h6" sx={{ color: '#fff' }}>
+                    Department Statistics
+                  </Typography>
+                } 
+                action={
+                  <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+                }
+                sx={{ 
+                  borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
+                  pb: 1,
+                }}
+              />
+              <CardContent>
+                {loading ? (
+                  <LoadingPlaceholder height={300} message="Loading statistics..." />
+                ) : users && users.length > 0 ? (
+                  <Box sx={{ width: '100%', overflow: 'auto' }}>
+                    <Box sx={{ minWidth: 400 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        p: 1.5, 
+                        borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
+                        bgcolor: 'rgba(0, 0, 0, 0.2)',
+                      }}>
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '40%' }}>
+                          Department
+                        </Typography>
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'center' }}>
+                          Users
+                        </Typography>
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'center' }}>
+                          Active
+                        </Typography>
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', width: '20%', textAlign: 'center' }}>
+                          % Active
+                        </Typography>
+                      </Box>
+                      
+                      {/* Group users by department */}
+                      {Object.entries(users.reduce((acc, user) => {
+                        const dept = user.department || 'Unknown';
+                        if (!acc[dept]) {
+                          acc[dept] = { total: 0, active: 0 };
+                        }
+                        acc[dept].total++;
+                        if (user.is_active) {
+                          acc[dept].active++;
+                        }
+                        return acc;
+                      }, {})).map(([dept, stats], index) => (
+                        <Box 
+                          key={index}
+                          sx={{ 
+                            display: 'flex', 
+                            p: 1.5, 
+                            borderBottom: '1px solid rgba(100, 180, 255, 0.05)',
+                            '&:hover': {
+                              bgcolor: 'rgba(100, 180, 255, 0.05)',
+                            }
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ color: '#fff', width: '40%', fontWeight: 500 }}>
+                            {dept}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'center' }}>
+                            {stats.total}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'center' }}>
+                            {stats.active}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#fff', width: '20%', textAlign: 'center' }}>
+                            {Math.round((stats.active / stats.total) * 100)}%
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      height: 300,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      bgcolor: 'rgba(0, 0, 0, 0.1)',
+                      borderRadius: 2,
+                      border: '1px dashed rgba(100, 180, 255, 0.2)',
+                    }}
+                  >
+                    <ErrorIcon sx={{ fontSize: 40, color: 'rgba(100, 180, 255, 0.6)', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      No department data available
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+      
+      {/* Locations Tab */}
+      {tabValue === 3 && (
         <Box sx={{ 
           height: 400, 
           display: 'flex', 
@@ -855,24 +1334,16 @@ const Analytics = () => {
             borderRadius: '50%',
             mb: 2,
           }}>
-            {tabValue === 2 ? (
-              <BarChartIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
-            ) : tabValue === 3 ? (
-              <DevicesIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
-            ) : (
-              <PublicIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
-            )}
+            <LocationOnIcon sx={{ color: '#42a5f5', fontSize: 48 }} />
           </Box>
           <Typography variant="h5" sx={{ color: '#fff', mb: 1 }}>
-            {tabValue === 2 ? 'Content Analytics' : 
-             tabValue === 3 ? 'Device Analytics' : 
-             'Geographic Analytics'}
+            Location Analytics
           </Typography>
           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3, textAlign: 'center', maxWidth: 500 }}>
-            This analytics section is coming soon. We're working on bringing you detailed insights about 
-            {tabValue === 2 ? ' your content performance.' : 
-             tabValue === 3 ? ' user devices and browsers.' : 
-             ' user locations and geographic trends.'}
+            This analytics section is coming soon. We're working on bringing you detailed insights about user locations and geographic trends.
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 3, textAlign: 'center', maxWidth: 500 }}>
+            Total location updates today: {dashboardData?.todayCounts?.locations || 0}
           </Typography>
           <Button
             variant="contained"

@@ -89,7 +89,7 @@ const UserData = () => {
   };
 
   const handleViewInfo = (userId) => {
-    window.location.href = `/userinfo/${userId}`;
+    window.location.href = `/dashboard/userinfo/${userId}`;
   };
 
   return (

@@ -67,7 +67,7 @@ ChartJS.register(
 );
 
 function MasterDashboard() {
-  const { getToken, user } = useAuth();
+  const { getToken, user, refreshToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -104,19 +104,62 @@ function MasterDashboard() {
           return;
         }
         
-        // Fetch dashboard stats
-        const [statsResponse, attendanceResponse] = await Promise.all([
-          axios.get('http://localhost:5000/api/dashboard/stats', {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get('http://localhost:5000/api/dashboard/today-attendance', {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-
-        if (statsResponse.data.success && attendanceResponse.data.success) {
-          setStats(statsResponse.data.data);
-          setTodayAttendance(attendanceResponse.data.data);
+        try {
+          // Fetch dashboard stats
+          const [statsResponse, attendanceResponse] = await Promise.all([
+            axios.get('http://localhost:5000/api/dashboard/stats', {
+              headers: { Authorization: `Bearer ${token}` }
+            }),
+            axios.get('http://localhost:5000/api/dashboard/today-attendance', {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+          ]);
+  
+          if (statsResponse.data.success && attendanceResponse.data.success) {
+            setStats(statsResponse.data.data);
+            setTodayAttendance(attendanceResponse.data.data);
+          }
+        } catch (error) {
+          // Check if error is due to token expiration (401 Unauthorized)
+          if (error.response && error.response.status === 401) {
+            // Try to refresh the token
+            const refreshed = await refreshToken();
+            
+            if (refreshed) {
+              // If token was refreshed successfully, try fetching data again
+              const newToken = getToken();
+              try {
+                const [statsResponse, attendanceResponse] = await Promise.all([
+                  axios.get('http://localhost:5000/api/dashboard/stats', {
+                    headers: { Authorization: `Bearer ${newToken}` }
+                  }),
+                  axios.get('http://localhost:5000/api/dashboard/today-attendance', {
+                    headers: { Authorization: `Bearer ${newToken}` }
+                  })
+                ]);
+                
+                if (statsResponse.data.success && attendanceResponse.data.success) {
+                  setStats(statsResponse.data.data);
+                  setTodayAttendance(attendanceResponse.data.data);
+                  // Clear any error if it was set
+                  setError(null);
+                  return; // Exit the function since we've successfully fetched data
+                }
+              } catch (refreshError) {
+                console.error('Error after token refresh:', refreshError);
+              }
+            }
+            
+            // If we get here, token refresh failed or fetching after refresh failed
+            setError('Your session has expired. Please login again.');
+            // Redirect to login page or trigger logout
+            localStorage.removeItem('user');
+            localStorage.removeItem('masterToken');
+            window.location.href = '/'; // Redirect to login page
+          } else {
+            console.error('Dashboard data fetch error:', error);
+            setError(error.response?.data?.message || 'Failed to fetch dashboard data');
+          }
         }
       } catch (error) {
         console.error('Dashboard data fetch error:', error);
@@ -132,7 +175,7 @@ function MasterDashboard() {
       setError('User not authenticated. Please login.');
       setLoading(false);
     }
-  }, [getToken, user]);
+  }, [getToken, user, refreshToken]);
 
   // Transform backend data for stats cards
   const statsData = [
@@ -799,7 +842,7 @@ function MasterDashboard() {
           <Button 
             variant="contained" 
             color="primary"
-            onClick={() => window.location.href = '/login'}
+            onClick={() => window.location.href = '/'}
             sx={{
               mt: 2,
               boxShadow: '0 4px 12px rgba(30,136,229,0.5)',

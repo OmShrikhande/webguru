@@ -15,14 +15,38 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('masterToken');
     
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Function to validate token
+    const validateToken = (token) => {
+      try {
+        // Parse the token to check expiration
+        // JWT tokens are in format: header.payload.signature
+        const payload = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payload));
+        
+        // Check if token is expired
+        if (decodedPayload.exp * 1000 < Date.now()) {
+          return false; // Token is expired
+        }
+        
+        return true; // Token is valid
+      } catch (error) {
+        console.error('Token validation error:', error);
+        return false;
+      }
+    };
     
-    if (storedToken) {
+    // Only set user if both user data and valid token exist
+    if (storedUser && storedToken && validateToken(storedToken)) {
+      setUser(JSON.parse(storedUser));
       setToken(storedToken);
       // Set default authorization header for all axios requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+    } else {
+      // Clear invalid data
+      localStorage.removeItem('user');
+      localStorage.removeItem('masterToken');
+      setUser(null);
+      setToken(null);
     }
     
     setLoading(false);
@@ -182,7 +206,64 @@ export const AuthProvider = ({ children }) => {
 
   // Get the authentication token
   const getToken = () => {
-    return token;
+    // Check if token exists
+    if (!token) {
+      return null;
+    }
+    
+    // Check if token is expired
+    try {
+      // Parse the token to check expiration
+      // JWT tokens are in format: header.payload.signature
+      const payload = token.split('.')[1];
+      const decodedPayload = JSON.parse(atob(payload));
+      
+      // Check if token is expired
+      if (decodedPayload.exp * 1000 < Date.now()) {
+        // Token is expired, clear it
+        setToken(null);
+        localStorage.removeItem('masterToken');
+        return null;
+      }
+      
+      return token;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return null;
+    }
+  };
+
+  // Function to refresh token
+  const refreshToken = async () => {
+    try {
+      // Only attempt to refresh if we have a user
+      if (!user) return false;
+      
+      // Call the refresh token endpoint
+      const response = await axios.post('http://localhost:5000/api/master/refresh-token', {
+        userId: user.id
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        const newToken = response.data.token;
+        
+        // Update token in state and localStorage
+        setToken(newToken);
+        localStorage.setItem('masterToken', newToken);
+        
+        // Update axios default header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
   };
 
   // Values to be provided to the context consumers
@@ -196,6 +277,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     hasRole,
     getToken,
+    refreshToken,
     loading,
     sendRegistrationOTP,
     verifyRegistrationOTP,

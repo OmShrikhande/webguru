@@ -106,7 +106,7 @@ const TopBar = ({ open, handleDrawerOpen }) => {
   const handleLogout = () => {
     handleMenuClose();
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const handleMobileMenuOpen = (event) => {

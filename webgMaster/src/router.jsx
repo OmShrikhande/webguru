@@ -54,6 +54,10 @@ const DefaultPage = ({ title }) => (
 
 const router = createBrowserRouter([
   {
+    path: '/',
+    element: <Login />
+  },
+  {
     path: '/login',
     element: <Login />
   },
@@ -62,7 +66,7 @@ const router = createBrowserRouter([
     element: <Register />
   },
   {
-    path: '/',
+    path: '/dashboard',
     element: (
       <ProtectedRoute>
         <DashboardLayout />
@@ -70,39 +74,39 @@ const router = createBrowserRouter([
     ),
     children: [
       {
-        path: '/',
+        path: '', // This is the index route for /dashboard
         element: <MasterDashboard />
       },
       {
-        path: '/dashboard',
+        path: 'overview',
         element: <Dashboard />
       },
       {
-        path: '/users',
+        path: 'users',
         element: <UserData />
       },
       {
-        path: '/admin',
+        path: 'admin',
         element: <Admin />
       },
       {
-        path: '/analytics',
+        path: 'analytics',
         element: <Analytics />
       },
       {
-        path: '/userdata',
+        path: 'userdata',
         element: <UserData />
       },
       {
-        path: '/userinfo/:userId',
+        path: 'userinfo/:userId',
         element: <UserInfo />
       },
       {
-        path: '/attendance',
+        path: 'attendance',
         element: <Attendance />
       },
       {
-        path: '/settings',
+        path: 'settings',
         element: <Settings />
       },
       {

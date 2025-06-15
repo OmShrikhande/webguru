@@ -7,54 +7,46 @@ import {
   CardContent, 
   CardHeader, 
   Switch, 
-  FormControlLabel, 
   Button, 
   Divider,
   TextField,
   MenuItem,
-  InputAdornment,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  ListItemSecondaryAction,
   Alert,
   Snackbar,
   Tabs,
   Tab,
   IconButton,
   Tooltip,
-  alpha
+  alpha,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  InputAdornment
 } from '@mui/material';
 import { 
   Settings as SettingsIcon,
-  Notifications as NotificationsIcon,
   Security as SecurityIcon,
   Palette as PaletteIcon,
   Person as PersonIcon,
-  Notifications as BellIcon,
-  Language as LanguageIcon,
-  Storage as StorageIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon,
-  CloudUpload as CloudUploadIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   Edit as EditIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  Public as PublicIcon,
-  Email as EmailIcon,
   VpnKey as VpnKeyIcon,
   ColorLens as ColorLensIcon,
   FormatSize as FormatSizeIcon,
   Image as ImageIcon,
   Lock as LockIcon,
-  AccessTime as AccessTimeIcon,
-  CalendarToday as CalendarTodayIcon,
-  Message as MessageIcon
+  Check as CheckIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -63,18 +55,28 @@ const Settings = () => {
   const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [darkMode, setDarkMode] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [language, setLanguage] = useState('en');
-  const [timezone, setTimezone] = useState('UTC');
-  const [dateFormat, setDateFormat] = useState('MM/DD/YYYY');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#1e88e5');
   const [accentColor, setAccentColor] = useState('#42a5f5');
+  
+  // Appearance settings
+  const [fontSize, setFontSize] = useState(1);
+  const [backgroundStyle, setBackgroundStyle] = useState('gradient');
+  const [backgroundAnimation, setBackgroundAnimation] = useState(true);
+  const [effectsIntensity, setEffectsIntensity] = useState(1);
+  
+  // Password change dialog states
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -85,39 +87,71 @@ const Settings = () => {
     setSnackbarOpen(true);
   };
   
+  const resetThemeSettings = () => {
+    setDarkMode(true);
+    setPrimaryColor('#1e88e5');
+    setAccentColor('#42a5f5');
+    setFontSize(1);
+    setSnackbarMessage('Theme settings reset to default!');
+    setSnackbarOpen(true);
+  };
+  
+  const resetBackgroundSettings = () => {
+    setBackgroundStyle('gradient');
+    setBackgroundAnimation(true);
+    setEffectsIntensity(1);
+    setSnackbarMessage('Background settings reset to default!');
+    setSnackbarOpen(true);
+  };
+  
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
   
-  const languages = [
-    { value: 'en', label: 'English' },
-    { value: 'es', label: 'Spanish' },
-    { value: 'fr', label: 'French' },
-    { value: 'de', label: 'German' },
-    { value: 'ja', label: 'Japanese' },
-    { value: 'zh', label: 'Chinese (Simplified)' },
-  ];
+  const handleOpenPasswordDialog = () => {
+    setPasswordDialogOpen(true);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
+  };
   
-  const timezones = [
-    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-    { value: 'ET', label: 'ET (Eastern Time)' },
-    { value: 'CT', label: 'CT (Central Time)' },
-    { value: 'MT', label: 'MT (Mountain Time)' },
-    { value: 'PT', label: 'PT (Pacific Time)' },
-    { value: 'GMT', label: 'GMT (Greenwich Mean Time)' },
-    { value: 'CET', label: 'CET (Central European Time)' },
-    { value: 'IST', label: 'IST (Indian Standard Time)' },
-    { value: 'JST', label: 'JST (Japan Standard Time)' },
-    { value: 'AEST', label: 'AEST (Australian Eastern Standard Time)' },
-  ];
+  const handleClosePasswordDialog = () => {
+    setPasswordDialogOpen(false);
+  };
   
-  const dateFormats = [
-    { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-    { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-    { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
-    { value: 'MMM DD, YYYY', label: 'MMM DD, YYYY' },
-    { value: 'DD MMM YYYY', label: 'DD MMM YYYY' },
-  ];
+  const handleChangePassword = () => {
+    // Validate inputs
+    if (!currentPassword) {
+      setPasswordError('Current password is required');
+      return;
+    }
+    
+    if (!newPassword) {
+      setPasswordError('New password is required');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    
+    // Here you would typically call an API to change the password
+    // For now, we'll just simulate a successful password change
+    
+    // Close the dialog
+    setPasswordDialogOpen(false);
+    
+    // Show success message
+    setSnackbarMessage('Password changed successfully!');
+    setSnackbarOpen(true);
+  };
   
   const renderAppearanceSettings = () => (
     <Grid container spacing={3}>
@@ -138,7 +172,10 @@ const Settings = () => {
             } 
             action={
               <Tooltip title="Reset to Default">
-                <IconButton sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <IconButton 
+                  onClick={resetThemeSettings}
+                  sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                >
                   <RefreshIcon />
                 </IconButton>
               </Tooltip>
@@ -251,10 +288,11 @@ const Settings = () => {
                     <Grid item xs>
                       <input
                         type="range"
-                        min={0}
-                        max={2}
+                        min={0.5}
+                        max={1.5}
                         step={0.1}
-                        defaultValue={1}
+                        value={fontSize}
+                        onChange={(e) => setFontSize(parseFloat(e.target.value))}
                         style={{ width: '100%' }}
                       />
                     </Grid>
@@ -288,7 +326,10 @@ const Settings = () => {
             } 
             action={
               <Tooltip title="Reset to Default">
-                <IconButton sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <IconButton 
+                  onClick={resetBackgroundSettings}
+                  sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                >
                   <RefreshIcon />
                 </IconButton>
               </Tooltip>
@@ -313,7 +354,8 @@ const Settings = () => {
                 <Box sx={{ minWidth: 120 }}>
                   <TextField
                     select
-                    value="gradient"
+                    value={backgroundStyle}
+                    onChange={(e) => setBackgroundStyle(e.target.value)}
                     size="small"
                     sx={{
                       '& .MuiOutlinedInput-root': {
@@ -353,7 +395,8 @@ const Settings = () => {
                   secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
                 />
                 <Switch 
-                  checked={true} 
+                  checked={backgroundAnimation} 
+                  onChange={() => setBackgroundAnimation(!backgroundAnimation)}
                   sx={{
                     '& .MuiSwitch-switchBase.Mui-checked': {
                       color: '#42a5f5',
@@ -393,7 +436,8 @@ const Settings = () => {
                         min={0}
                         max={2}
                         step={0.1}
-                        defaultValue={1}
+                        value={effectsIntensity}
+                        onChange={(e) => setEffectsIntensity(parseFloat(e.target.value))}
                         style={{ width: '100%' }}
                       />
                     </Grid>
@@ -412,245 +456,7 @@ const Settings = () => {
     </Grid>
   );
   
-  const renderNotificationSettings = () => (
-    <Card sx={{ 
-      bgcolor: 'rgba(25, 35, 60, 0.6)',
-      borderRadius: 2,
-      border: '1px solid rgba(100, 180, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-    }}>
-      <CardHeader 
-        title={
-          <Typography variant="h6" sx={{ color: '#fff' }}>
-            Notification Preferences
-          </Typography>
-        } 
-        action={
-          <Tooltip title="Reset to Default">
-            <IconButton sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-        }
-        sx={{ 
-          borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-          pb: 1,
-        }}
-      />
-      <CardContent>
-        <List>
-          <ListItem>
-            <ListItemIcon>
-              <EmailIcon sx={{ color: emailNotifications ? '#42a5f5' : 'rgba(255, 255, 255, 0.5)' }} />
-            </ListItemIcon>
-            <ListItemText 
-              primary="Email Notifications" 
-              secondary="Receive email alerts and updates"
-              primaryTypographyProps={{ color: '#fff' }}
-              secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-            />
-            <Switch 
-              checked={emailNotifications} 
-              onChange={() => setEmailNotifications(!emailNotifications)} 
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: '#42a5f5',
-                  '&:hover': {
-                    backgroundColor: alpha('#42a5f5', 0.1),
-                  },
-                },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: '#42a5f5',
-                },
-              }}
-            />
-          </ListItem>
-          
-          <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-          
-          <ListItem>
-            <ListItemIcon>
-              <BellIcon sx={{ color: pushNotifications ? '#42a5f5' : 'rgba(255, 255, 255, 0.5)' }} />
-            </ListItemIcon>
-            <ListItemText 
-              primary="Push Notifications" 
-              secondary="In-app and browser notifications"
-              primaryTypographyProps={{ color: '#fff' }}
-              secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-            />
-            <Switch 
-              checked={pushNotifications} 
-              onChange={() => setPushNotifications(!pushNotifications)} 
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: '#42a5f5',
-                  '&:hover': {
-                    backgroundColor: alpha('#42a5f5', 0.1),
-                  },
-                },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: '#42a5f5',
-                },
-              }}
-            />
-          </ListItem>
-          
-          <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-          
-          <ListItem>
-            <ListItemIcon>
-              <MessageIcon sx={{ color: smsNotifications ? '#42a5f5' : 'rgba(255, 255, 255, 0.5)' }} />
-            </ListItemIcon>
-            <ListItemText 
-              primary="SMS Notifications" 
-              secondary="Receive text message alerts"
-              primaryTypographyProps={{ color: '#fff' }}
-              secondaryTypographyProps={{ color: 'rgba(255, 255, 255, 0.6)' }}
-            />
-            <Switch 
-              checked={smsNotifications} 
-              onChange={() => setSmsNotifications(!smsNotifications)} 
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: '#42a5f5',
-                  '&:hover': {
-                    backgroundColor: alpha('#42a5f5', 0.1),
-                  },
-                },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: '#42a5f5',
-                },
-              }}
-            />
-          </ListItem>
-        </List>
-        
-        <Divider sx={{ my: 2, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-        
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-          Notification Categories
-        </Typography>
-        
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch 
-                  defaultChecked 
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#42a5f5',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#42a5f5',
-                    },
-                  }}
-                />
-              }
-              label="User Management"
-              sx={{ color: '#fff' }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch 
-                  defaultChecked 
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#42a5f5',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#42a5f5',
-                    },
-                  }}
-                />
-              }
-              label="System Updates"
-              sx={{ color: '#fff' }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch 
-                  defaultChecked 
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#42a5f5',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#42a5f5',
-                    },
-                  }}
-                />
-              }
-              label="Security Alerts"
-              sx={{ color: '#fff' }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch 
-                  defaultChecked 
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#42a5f5',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#42a5f5',
-                    },
-                  }}
-                />
-              }
-              label="Analytics Reports"
-              sx={{ color: '#fff' }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch 
-                  defaultChecked 
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#42a5f5',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#42a5f5',
-                    },
-                  }}
-                />
-              }
-              label="Attendance Changes"
-              sx={{ color: '#fff' }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControlLabel
-              control={
-                <Switch 
-                  defaultChecked={false}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#42a5f5',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#42a5f5',
-                    },
-                  }}
-                />
-              }
-              label="Marketing Updates"
-              sx={{ color: '#fff' }}
-            />
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
-  );
+
   
   const renderAccountSettings = () => (
     <Grid container spacing={3}>
@@ -809,6 +615,7 @@ const Settings = () => {
               <Button 
                 variant="outlined" 
                 startIcon={<VpnKeyIcon />}
+                onClick={handleOpenPasswordDialog}
                 sx={{
                   color: '#42a5f5',
                   borderColor: 'rgba(66, 165, 245, 0.5)',
@@ -973,176 +780,7 @@ const Settings = () => {
     </Grid>
   );
   
-  const renderRegionalSettings = () => (
-    <Card sx={{ 
-      bgcolor: 'rgba(25, 35, 60, 0.6)',
-      borderRadius: 2,
-      border: '1px solid rgba(100, 180, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-    }}>
-      <CardHeader 
-        title={
-          <Typography variant="h6" sx={{ color: '#fff' }}>
-            Regional Settings
-          </Typography>
-        } 
-        action={
-          <Tooltip title="Reset to Default">
-            <IconButton sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-        }
-        sx={{ 
-          borderBottom: '1px solid rgba(100, 180, 255, 0.1)',
-          pb: 1,
-        }}
-      />
-      <CardContent>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-              Language
-            </Typography>
-            <TextField
-              select
-              fullWidth
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LanguageIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(100, 180, 255, 0.3)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#1e88e5',
-                  },
-                  '& .MuiOutlinedInput-input': {
-                    color: '#fff',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  }
-                },
-              }}
-            >
-              {languages.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-              Time Zone
-            </Typography>
-            <TextField
-              select
-              fullWidth
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <AccessTimeIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(100, 180, 255, 0.3)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#1e88e5',
-                  },
-                  '& .MuiOutlinedInput-input': {
-                    color: '#fff',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  }
-                },
-              }}
-            >
-              {timezones.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-              Date Format
-            </Typography>
-            <TextField
-              select
-              fullWidth
-              value={dateFormat}
-              onChange={(e) => setDateFormat(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarTodayIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(100, 180, 255, 0.3)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#1e88e5',
-                  },
-                  '& .MuiOutlinedInput-input': {
-                    color: '#fff',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  }
-                },
-              }}
-            >
-              {dateFormats.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-        </Grid>
-        
-        <Alert 
-          severity="info" 
-          variant="outlined"
-          sx={{
-            mt: 3,
-            bgcolor: 'rgba(30, 136, 229, 0.1)',
-            borderColor: 'rgba(30, 136, 229, 0.3)',
-            color: '#90caf9',
-          }}
-        >
-          These settings affect how dates, times, and numbers are displayed throughout the application.
-        </Alert>
-      </CardContent>
-    </Card>
-  );
+
   
   return (
     <motion.div
@@ -1205,16 +843,12 @@ const Settings = () => {
         >
           <Tab label="Appearance" icon={<PaletteIcon />} iconPosition="start" />
           <Tab label="Account" icon={<PersonIcon />} iconPosition="start" />
-          <Tab label="Notifications" icon={<NotificationsIcon />} iconPosition="start" />
-          <Tab label="Regional" icon={<PublicIcon />} iconPosition="start" />
         </Tabs>
       </Box>
       
       {/* Tab Content */}
       {tabValue === 0 && renderAppearanceSettings()}
       {tabValue === 1 && renderAccountSettings()}
-      {tabValue === 2 && renderNotificationSettings()}
-      {tabValue === 3 && renderRegionalSettings()}
       
       {/* Success Snackbar */}
       <Snackbar
@@ -1232,6 +866,215 @@ const Settings = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      
+      {/* Password Change Dialog */}
+      <Dialog 
+        open={passwordDialogOpen} 
+        onClose={handleClosePasswordDialog}
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(25, 35, 60, 0.95)',
+            borderRadius: 2,
+            border: '1px solid rgba(100, 180, 255, 0.2)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+            color: '#fff',
+            maxWidth: 500,
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle sx={{ borderBottom: '1px solid rgba(100, 180, 255, 0.1)', pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <VpnKeyIcon sx={{ mr: 1, color: '#42a5f5' }} />
+            <Typography variant="h6" component="div" sx={{ color: '#fff' }}>
+              Change Password
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
+            Please enter your current password and a new password to update your credentials.
+          </DialogContentText>
+          
+          {passwordError && (
+            <Alert 
+              severity="error" 
+              variant="outlined"
+              sx={{ 
+                mb: 3, 
+                bgcolor: 'rgba(211, 47, 47, 0.1)', 
+                borderColor: 'rgba(211, 47, 47, 0.3)',
+                color: '#ef5350'
+              }}
+            >
+              {passwordError}
+            </Alert>
+          )}
+          
+          <TextField
+            margin="dense"
+            label="Current Password"
+            type={showCurrentPassword ? 'text' : 'password'}
+            fullWidth
+            variant="outlined"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    edge="end"
+                    sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                  >
+                    {showCurrentPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(0, 0, 0, 0.2)',
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(100, 180, 255, 0.3)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1e88e5',
+                },
+                '& .MuiOutlinedInput-input': {
+                  color: '#fff',
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&.Mui-focused': {
+                  color: '#42a5f5',
+                }
+              },
+            }}
+          />
+          
+          <TextField
+            margin="dense"
+            label="New Password"
+            type={showNewPassword ? 'text' : 'password'}
+            fullWidth
+            variant="outlined"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    edge="end"
+                    sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                  >
+                    {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(0, 0, 0, 0.2)',
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(100, 180, 255, 0.3)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1e88e5',
+                },
+                '& .MuiOutlinedInput-input': {
+                  color: '#fff',
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&.Mui-focused': {
+                  color: '#42a5f5',
+                }
+              },
+            }}
+          />
+          
+          <TextField
+            margin="dense"
+            label="Confirm New Password"
+            type={showConfirmPassword ? 'text' : 'password'}
+            fullWidth
+            variant="outlined"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    edge="end"
+                    sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                  >
+                    {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(0, 0, 0, 0.2)',
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(100, 180, 255, 0.3)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1e88e5',
+                },
+                '& .MuiOutlinedInput-input': {
+                  color: '#fff',
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&.Mui-focused': {
+                  color: '#42a5f5',
+                }
+              },
+            }}
+          />
+          
+          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', display: 'block', mt: 1 }}>
+            Password must be at least 8 characters long and include a mix of letters, numbers, and special characters.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={handleClosePasswordDialog}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleChangePassword}
+            variant="contained"
+            startIcon={<CheckIcon />}
+            sx={{
+              bgcolor: '#1e88e5',
+              '&:hover': {
+                bgcolor: '#1976d2',
+              },
+              borderRadius: 1,
+            }}
+          >
+            Update Password
+          </Button>
+        </DialogActions>
+      </Dialog>
     </motion.div>
   );
 };

@@ -23,9 +23,11 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
   const { login, adminBackdoorLogin } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +88,9 @@ const LoginForm = () => {
         if (!result.success) {
           throw new Error(result.message || 'Login failed');
         }
+        
+        // Redirect to dashboard on successful login
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.message || 'An error occurred during login');

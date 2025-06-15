@@ -59,15 +59,15 @@ const Sidebar = ({ open, handleDrawerClose }) => {
   const { user } = useAuth();
   
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'User Management', icon: <PeopleIcon />, path: '/userdata' },
-    { text: 'Admin Controls', icon: <AdminIcon />, path: '/admin' },
-    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
-    { text: 'Attendance', icon: <CalendarIcon />, path: '/attendance' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'User Management', icon: <PeopleIcon />, path: '/dashboard/userdata' },
+    { text: 'Admin Controls', icon: <AdminIcon />, path: '/dashboard/admin' },
+    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/dashboard/analytics' },
+    { text: 'Attendance', icon: <CalendarIcon />, path: '/dashboard/attendance' },
   ];
 
   const secondaryMenuItems = [
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/dashboard/settings' },
   ];
 
   return (

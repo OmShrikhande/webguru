@@ -16,7 +16,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated()) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
   
@@ -43,7 +43,7 @@ const Login = () => {
           };
           
           login(adminUser, true);
-          navigate('/');
+          navigate('/dashboard');
           return 0; // Reset counter
         }
         

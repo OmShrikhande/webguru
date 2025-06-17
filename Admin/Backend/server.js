@@ -14,6 +14,9 @@ require('./models/location');
 require('./models/Attendance');
 require('./models/Master');
 
+// Set default API base URL if not provided in .env
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost';
+
 const app = express();
 
 app.use(cors());
@@ -21,6 +24,14 @@ app.use(express.json());
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
+
+// Config endpoint to expose API base URL
+app.get('/api/config', (req, res) => {
+  res.json({
+    apiBaseUrl: API_BASE_URL,
+    port: process.env.PORT || 5000
+  });
+});
 
 // Master routes
 app.use('/api/master', masterRoutes);

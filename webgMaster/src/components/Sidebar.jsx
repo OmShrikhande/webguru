@@ -27,7 +27,8 @@ import {
   ChevronRight as ChevronRightIcon,
   Notifications as NotificationsIcon,
   Bolt as BoltIcon,
-  SupervisorAccount as SupervisorAccountIcon
+  SupervisorAccount as SupervisorAccountIcon,
+  NotificationsActive as AlertIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
@@ -64,6 +65,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
     { text: 'Admin Controls', icon: <AdminIcon />, path: '/dashboard/admin' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/dashboard/analytics' },
     { text: 'Attendance', icon: <CalendarIcon />, path: '/dashboard/attendance' },
+    { text: 'Send Alert', icon: <AlertIcon />, path: '/dashboard/alert' },
   ];
 
   const secondaryMenuItems = [

@@ -54,6 +54,7 @@ const ProfessionalDashboard = ({ children }) => {
     { name: 'Users', icon: '👥', path: '/users' },
     { name: 'Add User', icon: '➕', path: '/adduser' },
     { name: 'Attendance', icon: '📅', path: '/attendance' },
+    { name: 'Send Alert', icon: '🔔', path: '/alert' },
     { name: 'Analytics', icon: '📊', path: '/analytics' },
     { name: 'Reports', icon: '📋', path: '/reports' },
     { name: 'Settings', icon: '⚙️', path: '/settings' }
@@ -287,6 +288,15 @@ const ProfessionalDashboard = ({ children }) => {
                     <p className="text-sm font-medium text-gray-950">Add User</p>
                   </button>
                   <button
+                    onClick={() => navigate('/alert')}
+                    className="p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-center"
+                  >
+                    <div className="bg-red-50 p-3 rounded-xl mb-2 mx-auto w-fit">
+                      <span className="text-2xl">🔔</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-950">Send Alert</p>
+                  </button>
+                  <button
                     onClick={() => navigate('/reports')}
                     className="p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-center text-gray-950"
                   >
@@ -303,15 +313,6 @@ const ProfessionalDashboard = ({ children }) => {
                       <span className="text-2xl">📊</span>
                     </div>
                     <p className="text-sm font-medium text-gray-950">Analytics</p>
-                  </button>
-                  <button
-                    onClick={fetchDashboardData}
-                    className="p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-center"
-                  >
-                    <div className="bg-gray-50 p-3 rounded-xl mb-2 mx-auto w-fit">
-                      <span className="text-2xl">🔄</span>
-                    </div>
-                    <p className="text-sm font-medium text-gray-950">Refresh</p>
                   </button>
                 </div>
               </div>

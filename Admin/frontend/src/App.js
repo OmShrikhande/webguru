@@ -11,6 +11,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Attendance from './pages/Attendance';
 import AdminProfile from './pages/AdminProfile';
+import Alert from './pages/Alert';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/admin-profile" element={<AdminProfile />} />
+        <Route path="/alert" element={<Alert />} />
         <Route path="/notifications" element={<Dashboard />} />
         <Route path="/security" element={<Settings />} />
         <Route path="/system" element={<Analytics />} />

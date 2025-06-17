@@ -204,3 +204,53 @@ exports.registerMaster = async (req, res) => {
     });
   }
 };
+
+// Refresh token for master
+exports.refreshToken = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    // Validate userId
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Find the master by ID
+    const master = await Master.findById(userId);
+    if (!master) {
+      return res.status(404).json({
+        success: false,
+        message: 'Master not found'
+      });
+    }
+
+    // Create payload for new token
+    const payload = {
+      id: master._id,
+      email: master.email,
+      role: 'master'
+    };
+
+    // Generate new token with extended expiration
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '1d' // Keep the same expiration time
+    });
+
+    // Return the new token
+    res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      token
+    });
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh token',
+      error: error.message
+    });
+  }
+};

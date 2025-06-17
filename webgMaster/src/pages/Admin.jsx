@@ -18,7 +18,17 @@ import {
   TextField,
   InputAdornment,
   Chip,
-  Avatar
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Snackbar,
+  Grid
 } from '@mui/material';
 import { 
   Refresh as RefreshIcon,
@@ -27,11 +37,14 @@ import {
   AccessTime as AccessTimeIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  Add as AddIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { adminApi } from '../services/api';
 
 // Sample admin data (will be replaced with API data)
 const sampleAdmins = [
@@ -98,45 +111,59 @@ const Admin = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Add Admin Modal State
+  const [openAddAdminModal, setOpenAddAdminModal] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    department: 'IT',
+    position: 'Administrator',
+    phone: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   // Fetch admin data
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
         setLoading(true);
-        const token = getToken();
         
-        if (!token) {
-          setError('Authentication token not found. Please login again.');
-          // For demo purposes, use sample data if no token
-          setAdmins(sampleAdmins);
-          setLoading(false);
-          return;
-        }
-        
-        const response = await axios.get('http://localhost:5000/api/master/admins', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (response.data.success) {
-          setAdmins(response.data.admins);
-        } else {
-          setError('Failed to fetch admin data');
+        try {
+          const response = await adminApi.getAllAdmins();
+          
+          if (response.data.success) {
+            setAdmins(response.data.admins);
+          } else {
+            setError('Failed to fetch admin data');
+            // For demo purposes, use sample data if API fails
+            setAdmins(sampleAdmins);
+          }
+        } catch (error) {
+          console.error('Error fetching admins:', error);
+          setError(error.response?.data?.message || 'Failed to fetch admin data');
           // For demo purposes, use sample data if API fails
           setAdmins(sampleAdmins);
+        } finally {
+          setLoading(false);
         }
       } catch (error) {
-        console.error('Error fetching admins:', error);
-        setError(error.response?.data?.message || 'Failed to fetch admin data');
-        // For demo purposes, use sample data if API fails
+        console.error('Error in fetchAdmins:', error);
         setAdmins(sampleAdmins);
-      } finally {
         setLoading(false);
       }
     };
     
     fetchAdmins();
-  }, [getToken]);
+  }, []);
 
   // Handle page change
   const handleChangePage = (event, newPage) => {
@@ -161,19 +188,7 @@ const Admin = () => {
     setError(null);
     const fetchAdmins = async () => {
       try {
-        const token = getToken();
-        
-        if (!token) {
-          setError('Authentication token not found. Please login again.');
-          // For demo purposes, use sample data if no token
-          setAdmins(sampleAdmins);
-          setLoading(false);
-          return;
-        }
-        
-        const response = await axios.get('http://localhost:5000/api/master/admins', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await adminApi.getAllAdmins();
         
         if (response.data.success) {
           setAdmins(response.data.admins);
@@ -193,6 +208,123 @@ const Admin = () => {
     };
     
     fetchAdmins();
+  };
+  
+  // Handle input change for new admin form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewAdmin({
+      ...newAdmin,
+      [name]: value
+    });
+    
+    // Clear error for this field when user types
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: null
+      });
+    }
+  };
+  
+  // Validate form
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!newAdmin.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    }
+    
+    if (!newAdmin.lastName.trim()) {
+      errors.lastName = 'Last name is required';
+    }
+    
+    if (!newAdmin.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(newAdmin.email)) {
+      errors.email = 'Email is invalid';
+    }
+    
+    if (!newAdmin.password.trim()) {
+      errors.password = 'Password is required';
+    } else if (newAdmin.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+    
+    if (!newAdmin.department.trim()) {
+      errors.department = 'Department is required';
+    }
+    
+    if (!newAdmin.position.trim()) {
+      errors.position = 'Position is required';
+    }
+    
+    return errors;
+  };
+  
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await adminApi.createAdmin(newAdmin);
+      
+      if (response.data.success) {
+        // Add the new admin to the list
+        setAdmins([response.data.admin, ...admins]);
+        
+        // Close modal and reset form
+        setOpenAddAdminModal(false);
+        setNewAdmin({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          department: 'IT',
+          position: 'Administrator',
+          phone: ''
+        });
+        
+        // Show success message
+        setSnackbar({
+          open: true,
+          message: 'Admin created successfully',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || 'Failed to create admin',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error creating admin:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to create admin',
+        severity: 'error'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle close snackbar
+  const handleCloseSnackbar = () => {
+    setSnackbar({
+      ...snackbar,
+      open: false
+    });
   };
 
   // Filter admins based on search term
@@ -252,6 +384,7 @@ const Admin = () => {
           <Button
             variant="contained"
             startIcon={<AdminPanelSettingsIcon />}
+            onClick={() => setOpenAddAdminModal(true)}
             sx={{
               bgcolor: '#1e88e5',
               '&:hover': {
@@ -261,7 +394,7 @@ const Admin = () => {
               px: 2,
             }}
           >
-            Admin Actions
+            Add Admin
           </Button>
         </Box>
       </Box>
@@ -468,6 +601,328 @@ const Admin = () => {
           </>
         )}
       </Paper>
+      {/* Add Admin Modal */}
+      <Dialog 
+        open={openAddAdminModal} 
+        onClose={() => setOpenAddAdminModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(25, 35, 60, 0.9)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 2,
+            border: '1px solid rgba(100, 180, 255, 0.1)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+            color: 'white'
+          }
+        }}
+      >
+        <DialogTitle sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+              <AddIcon sx={{ mr: 1 }} /> Add New Admin
+            </Typography>
+            <IconButton 
+              onClick={() => setOpenAddAdminModal(false)}
+              sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  name="firstName"
+                  value={newAdmin.firstName}
+                  onChange={handleInputChange}
+                  error={!!formErrors.firstName}
+                  helperText={formErrors.firstName}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: '#f44336',
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  name="lastName"
+                  value={newAdmin.lastName}
+                  onChange={handleInputChange}
+                  error={!!formErrors.lastName}
+                  helperText={formErrors.lastName}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: '#f44336',
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={newAdmin.email}
+                  onChange={handleInputChange}
+                  error={!!formErrors.email}
+                  helperText={formErrors.email}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: '#f44336',
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={newAdmin.password}
+                  onChange={handleInputChange}
+                  error={!!formErrors.password}
+                  helperText={formErrors.password}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: '#f44336',
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl 
+                  fullWidth
+                  error={!!formErrors.department}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: '#f44336',
+                    },
+                    '& .MuiSelect-icon': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                  }}
+                >
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    name="department"
+                    value={newAdmin.department}
+                    onChange={handleInputChange}
+                    label="Department"
+                  >
+                    <MenuItem value="IT">IT</MenuItem>
+                    <MenuItem value="HR">HR</MenuItem>
+                    <MenuItem value="Finance">Finance</MenuItem>
+                    <MenuItem value="Marketing">Marketing</MenuItem>
+                    <MenuItem value="Operations">Operations</MenuItem>
+                    <MenuItem value="Sales">Sales</MenuItem>
+                    <MenuItem value="Customer Support">Customer Support</MenuItem>
+                  </Select>
+                  {formErrors.department && (
+                    <Typography variant="caption" color="error">
+                      {formErrors.department}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Position"
+                  name="position"
+                  value={newAdmin.position}
+                  onChange={handleInputChange}
+                  error={!!formErrors.position}
+                  helperText={formErrors.position}
+                  required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: '#f44336',
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Phone"
+                  name="phone"
+                  value={newAdmin.phone}
+                  onChange={handleInputChange}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1e88e5',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </form>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenAddAdminModal(false)}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&:hover': { color: 'white' }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={20} /> : <AddIcon />}
+            sx={{
+              bgcolor: '#1e88e5',
+              '&:hover': {
+                bgcolor: '#1976d2',
+              },
+              '&.Mui-disabled': {
+                bgcolor: 'rgba(30, 136, 229, 0.5)',
+              }
+            }}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        ContentProps={{
+          sx: {
+            bgcolor: snackbar.severity === 'success' ? 'rgba(76, 175, 80, 0.9)' : 'rgba(244, 67, 54, 0.9)',
+            color: 'white',
+            fontWeight: 'medium',
+            borderRadius: 2,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+          }
+        }}
+      />
     </motion.div>
   );
 };

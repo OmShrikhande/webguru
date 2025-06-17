@@ -12,6 +12,7 @@ import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Alert from './pages/Alert';
 
 // Loading component for lazy-loaded routes
 const LazyLoadingComponent = () => (
@@ -108,6 +109,10 @@ const router = createBrowserRouter([
       {
         path: 'settings',
         element: <Settings />
+      },
+      {
+        path: 'alert',
+        element: <Alert />
       },
       {
         path: '*',

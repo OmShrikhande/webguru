@@ -19,7 +19,8 @@ const {
 const {
   sendOTP,
   verifyOTP,
-  registerMaster: registerMasterWithOTP
+  registerMaster: registerMasterWithOTP,
+  refreshToken
 } = require('../controllers/masterAuthController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -31,6 +32,9 @@ router.post('/login', loginMaster);
 router.post('/send-otp', sendOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/register-with-otp', registerMasterWithOTP);
+
+// Token refresh route
+router.post('/refresh-token', protect, authorize('master'), refreshToken);
 
 // Protected routes (require authentication)
 router.get('/profile', protect, authorize('master'), getMasterProfile);

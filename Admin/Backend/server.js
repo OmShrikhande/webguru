@@ -8,11 +8,16 @@ const dashboardRoutes = require('./routes/dashboardRoutes.js');
 const attendanceRoutes = require('./routes/attendanceRoutes.js');
 const visitLocationRoutes = require('./routes/visitLocation.js');
 const masterRoutes = require('./routes/masterRoutes.js');
+const reportsRoutes = require('./routes/reportsRoutes.js');
+const holidayRoutes = require('./routes/holidayRoutes.js');
+const alertRoutes = require('./routes/alertRoutes.js');
 
 // Import models to ensure they're registered
 require('./models/location');
 require('./models/Attendance');
 require('./models/Master');
+require('./models/Holiday');
+require('./models/Alert');
 
 // Set default API base URL if not provided in .env
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost';
@@ -42,6 +47,9 @@ app.use('/api/admin', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', attendanceRoutes);
 app.use('/api', visitLocationRoutes);
+app.use('/api', reportsRoutes);
+app.use('/api', holidayRoutes);
+app.use('/api', alertRoutes);
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,

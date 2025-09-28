@@ -1,26 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
 import ProfessionalDashboard from '../components/dashboard/ProfessionalDashboard';
 import FuturisticBackground from '../components/backgrounds/FuturisticBackground';
 
 const Alert = () => {
   const [authorized, setAuthorized] = useState(true);
-  const [routeNumber, setRouteNumber] = useState('');
   const [message, setMessage] = useState('');
+  const [title, setTitle] = useState('');
+  const [recipients, setRecipients] = useState('department');
+  const [department, setDepartment] = useState('');
+  const [departments, setDepartments] = useState([]);
+  const [sendToActiveOnly, setSendToActiveOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
-  const [adminInfo, setAdminInfo] = useState(null);
-  const [routes, setRoutes] = useState([
-    { id: '1', name: 'Route 1' },
-    { id: '2', name: 'Route 2' },
-    { id: '3', name: 'Route 3' },
-    { id: '4', name: 'Route 4' },
-    { id: '5', name: 'Route 5' }
-  ]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,72 +25,74 @@ const Alert = () => {
     }
 
     setAuthorized(true);
-    fetchAdminInfo(token);
+    fetchDepartments(token);
   }, [navigate]);
 
-  const fetchAdminInfo = async (token) => {
+  const fetchDepartments = async (token) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/profile', {
+      const response = await axios.get('http://localhost:5000/api/admin/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      if (response.data.success) {
-        setAdminInfo(response.data.admin);
+
+      const users = response.data.users || [];
+      const uniqueDepartments = [...new Set(users.map((user) => user.department).filter(Boolean))];
+      setDepartments(uniqueDepartments);
+
+      if (recipients === 'department' && uniqueDepartments.length === 1) {
+        setDepartment(uniqueDepartments[0]);
       }
     } catch (err) {
-      console.log('Admin info not available');
+      console.error('Error fetching departments:', err);
+      setError('Failed to fetch departments');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!routeNumber || !message) {
-      setError('Please fill in all fields');
+
+    if (!message) {
+      setError('Message is required');
       return;
     }
-    
+
+    if (recipients === 'department' && !department) {
+      setError('Department is required when sending to a department');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
-      // Add a new document to the "alerts" collection
-      await addDoc(collection(db, "alerts"), {
-        routeNumber,
-        message,
-        adminName: getAdminName(),
-        adminDesignation: adminInfo?.role || 'Admin',
-        timestamp: serverTimestamp(),
-        status: 'active'
-      });
-      
-      // Reset form
-      setRouteNumber('');
-      setMessage('');
-      
-      // Show success message
+      const token = localStorage.getItem('token');
+
+      await axios.post(
+        'http://localhost:5000/api/alerts',
+        {
+          title,
+          message,
+          recipients,
+          department: recipients === 'department' ? department : undefined,
+          sendToActiveOnly
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
       setSuccess('Alert sent successfully!');
+      setTitle('');
+      setMessage('');
+      setDepartment('');
+      setRecipients('department');
+      setSendToActiveOnly(false);
     } catch (err) {
-      console.error("Error sending alert: ", err);
-      setError('Error sending alert. Please try again.');
+      console.error('Error sending alert:', err);
+      setError(err.response?.data?.message || 'Error sending alert. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const getAdminName = () => {
-    if (!adminInfo) return 'Admin';
-    
-    if (adminInfo.firstName && adminInfo.lastName) {
-      return `${adminInfo.firstName} ${adminInfo.lastName}`;
-    }
-    
-    if (adminInfo.username) {
-      return adminInfo.username;
-    }
-    
-    return adminInfo.email?.split('@')[0] || 'Admin';
   };
 
   if (!authorized) return null;
@@ -110,7 +106,9 @@ const Alert = () => {
               <span className="text-2xl mr-2">🔔</span>
               Send Alert
             </h2>
-            <p className="text-gray-600">Send alerts to users on specific routes</p>
+            <p className="text-gray-600">
+              Broadcast alerts to departments or everyone across the organization.
+            </p>
           </div>
 
           {success && (
@@ -133,58 +131,86 @@ const Alert = () => {
 
           <div className="bg-white/50 backdrop-blur rounded-xl p-6 shadow-lg border border-white/30">
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 gap-6 mb-6">
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Admin Information
-                  </label>
-                  <div className="p-4 rounded-lg bg-indigo-50 border border-indigo-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {adminInfo?.firstName ? adminInfo.firstName[0] : 'A'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{getAdminName()}</p>
-                        <p className="text-sm text-gray-600">{adminInfo?.role || 'Admin'}</p>
-                      </div>
-                    </div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Recipients</label>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="recipients"
+                        value="department"
+                        checked={recipients === 'department'}
+                        onChange={() => setRecipients('department')}
+                      />
+                      <span>Specific department</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="recipients"
+                        value="all"
+                        checked={recipients === 'all'}
+                        onChange={() => setRecipients('all')}
+                      />
+                      <span>All members</span>
+                    </label>
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="routeNumber" className="block text-gray-700 text-sm font-medium mb-2">
-                    Route Number
-                  </label>
-                  <select
-                    id="routeNumber"
-                    value={routeNumber}
-                    onChange={(e) => setRouteNumber(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  >
-                    <option value="">Select a route</option>
-                    {routes.map((route) => (
-                      <option key={route.id} value={route.id}>
-                        {route.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                {recipients === 'department' && (
+                  <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-2">Department</label>
+                    <select
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      required
+                    >
+                      <option value="">Select a department</option>
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div className="mb-6">
-                <label htmlFor="message" className="block text-gray-700 text-sm font-medium mb-2">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={4}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Enter your alert message here..."
-                  required
-                ></textarea>
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Title (optional)</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Urgent update"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2">Message</label>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter your alert message here..."
+                    required
+                  ></textarea>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="activeOnly"
+                    checked={sendToActiveOnly}
+                    onChange={(e) => setSendToActiveOnly(e.target.checked)}
+                  />
+                  <label htmlFor="activeOnly" className="text-sm text-gray-700">
+                    Send only to active users
+                  </label>
+                </div>
               </div>
 
               <div className="flex justify-end">
@@ -195,17 +221,7 @@ const Alert = () => {
                     loading ? 'opacity-70 cursor-not-allowed' : ''
                   }`}
                 >
-                  {loading ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Sending...
-                    </span>
-                  ) : (
-                    'Send Alert'
-                  )}
+                  {loading ? 'Sending...' : 'Send Alert'}
                 </button>
               </div>
             </form>

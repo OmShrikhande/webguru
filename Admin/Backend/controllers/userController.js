@@ -1,9 +1,9 @@
-﻿﻿﻿﻿﻿﻿﻿﻿const mongoose = require('mongoose');
+﻿﻿﻿﻿﻿﻿﻿const mongoose = require('mongoose');
 const User = require('../models/User');
 const Location = require('../models/location');
 const VisitLocation = require('../models/visitLocation');
-// const VisitLocation = require('../models/visitLocation');
 const bcrypt = require('bcrypt');
+const { trackUserMovement } = require('../utils/distanceTracker');
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -274,6 +274,18 @@ exports.addUserLocation = async (req, res) => {
     });
 
     await newLocation.save();
+
+    // Track user movement for active visits
+    try {
+      const activeVisitsCount = await trackUserMovement(req.params.id, {
+        latitude,
+        longitude
+      });
+      console.log(`Updated ${activeVisitsCount} active visits with new location`);
+    } catch (trackingError) {
+      console.error('Error tracking user movement:', trackingError);
+      // Don't fail the location save if tracking fails
+    }
 
     res.status(201).json({
       success: true,

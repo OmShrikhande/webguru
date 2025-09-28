@@ -12,6 +12,8 @@ import Settings from './pages/Settings';
 import Attendance from './pages/Attendance';
 import AdminProfile from './pages/AdminProfile';
 import Alert from './pages/Alert';
+import MonthlyReports from './pages/MonthlyReports';
+import HolidayManagement from './pages/HolidayManagement';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
         <Route path="/notifications" element={<Dashboard />} />
         <Route path="/security" element={<Settings />} />
         <Route path="/system" element={<Analytics />} />
+        <Route path="/monthly-reports" element={<MonthlyReports />} />
+        <Route path="/holiday-management" element={<HolidayManagement />} />
       </Routes>
     </Router>
   );

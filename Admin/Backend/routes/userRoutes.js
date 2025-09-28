@@ -44,6 +44,33 @@ const upload = multer({
 // Protected user routes
 router.post('/users', protect, createUser);
 router.get('/users', protect, getAllUsers);
+router.get('/users/departments', protect, async (req, res) => {
+  try {
+    const departments = await User.aggregate([
+      {
+        $group: {
+          _id: '$department'
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          department: '$_id'
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      departments: departments
+        .map((entry) => entry.department)
+        .filter((dept) => typeof dept === 'string' && dept.trim().length > 0)
+    });
+  } catch (error) {
+    console.error('Failed to fetch departments:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch departments' });
+  }
+});
 router.get('/users/:id', protect, getUser);
 router.get('/users/:id/locations', protect, getUserLocation);
 router.post('/users/:id/locations', protect, addUserLocation);

@@ -45,6 +45,53 @@ const VisitLocationSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  distanceTraveled: {
+    type: Number,
+    default: 0, // Distance in kilometers
+    min: 0
+  },
+  startLocation: {
+    latitude: {
+      type: Number,
+      default: null
+    },
+    longitude: {
+      type: Number,
+      default: null
+    },
+    timestamp: {
+      type: Date,
+      default: null
+    }
+  },
+  endLocation: {
+    latitude: {
+      type: Number,
+      default: null
+    },
+    longitude: {
+      type: Number,
+      default: null
+    },
+    timestamp: {
+      type: Date,
+      default: null
+    }
+  },
+  routePoints: [{
+    latitude: {
+      type: Number,
+      required: true
+    },
+    longitude: {
+      type: Number,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   images: [{
     data: {
       type: Buffer,

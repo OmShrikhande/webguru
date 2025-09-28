@@ -6,7 +6,6 @@ import SnakeGame from './SnakeGame';
 const ProfessionalDashboard = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dashboardStats, setDashboardStats] = useState(null);
-  const [recentActivities, setRecentActivities] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
   const [adminInfo, setAdminInfo] = useState(null);
   const navigate = useNavigate();
@@ -32,15 +31,6 @@ const ProfessionalDashboard = ({ children }) => {
         console.log('Dashboard stats not available');
       }
 
-      // Fetch activities
-      try {
-        const activitiesResponse = await axios.get('http://localhost:5000/api/dashboard/recent-activities', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setRecentActivities(activitiesResponse.data.activities);
-      } catch (err) {
-        console.log('Recent activities not available');
-      }
 
       setStatsLoading(false);
     } catch (err) {
@@ -54,8 +44,10 @@ const ProfessionalDashboard = ({ children }) => {
     { name: 'Users', icon: '👥', path: '/users' },
     { name: 'Add User', icon: '➕', path: '/adduser' },
     { name: 'Attendance', icon: '📅', path: '/attendance' },
+    { name: 'Monthly Reports', icon: '📊', path: '/monthly-reports' },
+    { name: 'Holiday Management', icon: '🗓️', path: '/holiday-management' },
     { name: 'Send Alert', icon: '🔔', path: '/alert' },
-    { name: 'Analytics', icon: '📊', path: '/analytics' },
+    { name: 'Analytics', icon: '📈', path: '/analytics' },
     { name: 'Reports', icon: '📋', path: '/reports' },
     { name: 'Settings', icon: '⚙️', path: '/settings' }
   ];

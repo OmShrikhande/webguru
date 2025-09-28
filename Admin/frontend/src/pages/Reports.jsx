@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import ProfessionalDashboard from '../components/dashboard/ProfessionalDashboard';
 import FuturisticBackground from '../components/backgrounds/FuturisticBackground';
@@ -6,8 +6,11 @@ import FuturisticBackground from '../components/backgrounds/FuturisticBackground
 const Reports = () => {
   const [users, setUsers] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [attendanceSummary, setAttendanceSummary] = useState([]);
+  const [attendanceMeta, setAttendanceMeta] = useState({ startDate: '', endDate: '' });
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState('users');
+  const [errorMessage, setErrorMessage] = useState('');
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
@@ -24,6 +27,7 @@ const Reports = () => {
   const fetchReportData = async () => {
     try {
       setLoading(true);
+      setErrorMessage('');
       const token = localStorage.getItem('token');
 
       if (reportType === 'users') {
@@ -32,6 +36,7 @@ const Reports = () => {
         });
         setUsers(response.data.users);
       } else if (reportType === 'attendance') {
+        // Fetch detailed records (fallback)
         try {
           const response = await axios.get('http://localhost:5000/api/attendance', {
             headers: { Authorization: `Bearer ${token}` },
@@ -47,10 +52,36 @@ const Reports = () => {
           console.log('Attendance data not available');
           setAttendance([]);
         }
+
+        // Fetch aggregated summary
+        try {
+          const summaryResponse = await axios.get('http://localhost:5000/api/reports/attendance-summary', {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              startDate: dateRange.startDate,
+              endDate: dateRange.endDate,
+              department: filters.department || undefined
+            }
+          });
+
+          setAttendanceSummary(summaryResponse.data.data || []);
+          setAttendanceMeta(summaryResponse.data.meta || { startDate: dateRange.startDate, endDate: dateRange.endDate });
+        } catch (summaryError) {
+          console.error('Attendance summary not available:', summaryError);
+          setAttendanceSummary([]);
+          setAttendanceMeta({ startDate: dateRange.startDate, endDate: dateRange.endDate });
+          setErrorMessage('Unable to load attendance summary. Showing detailed records instead.');
+        }
       }
+      
+      setAttendanceMeta((prevMeta) => ({
+        startDate: prevMeta.startDate || dateRange.startDate,
+        endDate: prevMeta.endDate || dateRange.endDate
+      }));
       setLoading(false);
     } catch (error) {
       console.error('Error fetching report data:', error);
+      setErrorMessage('Failed to fetch report data. Please try again.');
       setLoading(false);
     }
   };
@@ -69,9 +100,9 @@ const Reports = () => {
         csvContent += `"${user.name}","${user.email}","${user.department}","${user.mobile}","${user.is_active ? 'Active' : 'Inactive'}","${new Date(user.joiningDate).toLocaleDateString()}","${user.address}"\n`;
       });
     } else if (reportType === 'attendance') {
-      csvContent = 'User,Date,Check In,Check Out,Total Hours,Status\n';
+      csvContent = 'Name,Department,Present Days,Absent Days,Half Days,Late Days,Total Hours Worked,Total Records\n';
       data.forEach(record => {
-        csvContent += `"${record.userId?.name || 'Unknown'}","${new Date(record.date).toLocaleDateString()}","${record.checkIn?.time ? new Date(record.checkIn.time).toLocaleTimeString() : 'N/A'}","${record.checkOut?.time ? new Date(record.checkOut.time).toLocaleTimeString() : 'N/A'}","${record.totalHours || 0}","${record.status}"\n`;
+        csvContent += `"${record.name}","${record.department}","${record.presentDays}","${record.absentDays}","${record.halfDays}","${record.lateDays}","${record.totalHoursWorked}","${record.totalRecords}"\n`;
       });
     }
 
@@ -114,7 +145,7 @@ const Reports = () => {
     return matchesDepartment && matchesStatus;
   });
 
-  const departments = [...new Set(users.map(user => user.department))];
+  const departments = [...new Set(users.map(user => user.department).filter(Boolean))];
 
   return (
     <FuturisticBackground variant="reports">
@@ -128,7 +159,14 @@ const Reports = () => {
             </div>
             <div className="flex space-x-3">
               <button
-                onClick={() => exportToCSV(reportType === 'users' ? filteredUsers : attendance, reportType)}
+                onClick={() => exportToCSV(
+                  reportType === 'users'
+                    ? filteredUsers
+                    : attendanceSummary.length > 0
+                      ? attendanceSummary
+                      : attendance,
+                  reportType
+                )}
                 className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 
                          text-white px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105"
               >
@@ -240,33 +278,32 @@ const Reports = () => {
             {reportType === 'attendance' && (
               <>
                 <ReportCard
-                  title="Total Records"
-                  value={attendance.length}
-                  subtitle="In date range"
-                  icon="📅"
-                  color="blue"
-                />
-                <ReportCard
                   title="Present Days"
-                  value={attendance.filter(a => a.status === 'present').length}
-                  subtitle="Present records"
+                  value={attendanceSummary.reduce((sum, item) => sum + item.presentDays, 0)}
+                  subtitle={`${attendanceSummary.length} employees`}
                   icon="✅"
                   color="green"
                 />
                 <ReportCard
-                  title="Late Arrivals"
-                  value={attendance.filter(a => a.status === 'late').length}
-                  subtitle="Late records"
-                  icon="⏰"
+                  title="Absent Days"
+                  value={attendanceSummary.reduce((sum, item) => sum + item.absentDays, 0)}
+                  subtitle="Includes half-day conversions"
+                  icon="🚫"
+                  color="red"
+                />
+                <ReportCard
+                  title="Half Days"
+                  value={attendanceSummary.reduce((sum, item) => sum + item.halfDays, 0)}
+                  subtitle="Raw half-day count"
+                  icon="🌓"
                   color="yellow"
                 />
                 <ReportCard
-                  title="Avg. Hours"
-                  value={attendance.length > 0 ? 
-                    (attendance.reduce((sum, a) => sum + (a.totalHours || 0), 0) / attendance.length).toFixed(1) + 'h' : '0h'}
-                  subtitle="Average working hours"
-                  icon="📊"
-                  color="purple"
+                  title="Total Hours"
+                  value={`${attendanceSummary.reduce((sum, item) => sum + item.totalHoursWorked, 0).toFixed(1)}h`}
+                  subtitle="Across all employees"
+                  icon="⏱️"
+                  color="blue"
                 />
               </>
             )}
@@ -278,10 +315,10 @@ const Reports = () => {
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">
                   {reportType === 'users' ? 'User Data' : 
-                   reportType === 'attendance' ? 'Attendance Records' : 'Report Data'}
+                   reportType === 'attendance' ? `Attendance Summary (${attendanceMeta.startDate} to ${attendanceMeta.endDate})` : 'Report Data'}
                 </h3>
                 <div className="text-white text-sm">
-                  {reportType === 'users' ? filteredUsers.length : attendance.length} records
+                  {reportType === 'users' ? filteredUsers.length : attendanceSummary.length || attendance.length} records
                 </div>
               </div>
             </div>
@@ -331,37 +368,27 @@ const Reports = () => {
                   <table className="w-full">
                     <thead className="bg-white/20">
                       <tr>
-                        <th className="px-6 py-4 text-left text-white font-medium">User</th>
-                        <th className="px-6 py-4 text-left text-white font-medium">Date</th>
-                        <th className="px-6 py-4 text-left text-white font-medium">Check In</th>
-                        <th className="px-6 py-4 text-left text-white font-medium">Check Out</th>
-                        <th className="px-6 py-4 text-left text-white font-medium">Hours</th>
-                        <th className="px-6 py-4 text-left text-white font-medium">Status</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Employee</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Department</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Present Days</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Absent Days</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Half Days</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Late Days</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Total Hours</th>
+                        <th className="px-6 py-4 text-left text-white font-medium">Records</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {attendance.map((record, index) => (
-                        <tr key={record._id} className="border-b border-white/10 hover:bg-white/10">
-                          <td className="px-6 py-4 text-white">{record.userId?.name || 'Unknown'}</td>
-                          <td className="px-6 py-4 text-white">
-                            {new Date(record.date).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 text-white">
-                            {record.checkIn?.time ? new Date(record.checkIn.time).toLocaleTimeString() : 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 text-white">
-                            {record.checkOut?.time ? new Date(record.checkOut.time).toLocaleTimeString() : 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 text-white">{record.totalHours || 0}h</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              record.status === 'present' ? 'bg-green-500/20 text-green-300' :
-                              record.status === 'late' ? 'bg-yellow-500/20 text-yellow-300' :
-                              'bg-red-500/20 text-red-300'
-                            }`}>
-                              {record.status}
-                            </span>
-                          </td>
+                      {attendanceSummary.map((record) => (
+                        <tr key={record.userId} className="border-b border-white/10 hover:bg-white/10">
+                          <td className="px-6 py-4 text-white">{record.name}</td>
+                          <td className="px-6 py-4 text-white">{record.department}</td>
+                          <td className="px-6 py-4 text-white">{record.presentDays}</td>
+                          <td className="px-6 py-4 text-white">{record.absentDays}</td>
+                          <td className="px-6 py-4 text-white">{record.halfDays}</td>
+                          <td className="px-6 py-4 text-white">{record.lateDays}</td>
+                          <td className="px-6 py-4 text-white">{record.totalHoursWorked.toFixed(2)}h</td>
+                          <td className="px-6 py-4 text-white">{record.totalRecords}</td>
                         </tr>
                       ))}
                     </tbody>

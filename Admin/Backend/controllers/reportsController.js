@@ -8,6 +8,47 @@ const HALF_DAY_STATUS = 'half-day';
 const PRESENT_STATUSES = ['present', 'late'];
 const HALF_DAY_THRESHOLD = 4;
 const HALF_DAY_ABSENCE_RATIO = 0.5;
+const DEFAULT_SUMMARY_RANGE_DAYS = 30;
+
+const normaliseDate = (date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const coerceDate = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const validateDateRange = (startDateInput, endDateInput) => {
+  let endDate = coerceDate(endDateInput) || new Date();
+  endDate = normaliseDate(endDate);
+
+  let startDate = coerceDate(startDateInput);
+  if (!startDate) {
+    startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - (DEFAULT_SUMMARY_RANGE_DAYS - 1));
+  }
+  startDate = normaliseDate(startDate);
+
+  if (startDate > endDate) {
+    const swapped = startDate;
+    startDate = endDate;
+    endDate = swapped;
+  }
+
+  return {
+    startDate,
+    endDate,
+    startDateString: startDate.toISOString().split('T')[0],
+    endDateString: endDate.toISOString().split('T')[0]
+  };
+};
 
 // Helper function to calculate distance between two points using Haversine formula
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -174,6 +215,177 @@ const buildDailyBreakdown = async (startDate, endDate, attendanceRecords, holida
   }
 
   return breakdown;
+};
+
+const applyHalfDayConversion = ({ presentDays, halfDays, absentDays }) => {
+  const cappedHalfDays = Math.min(halfDays, HALF_DAY_THRESHOLD);
+  const excessHalfDays = Math.max(halfDays - HALF_DAY_THRESHOLD, 0);
+
+  const normalizedPresentDays = presentDays + cappedHalfDays;
+  const normalizedAbsentDays = absentDays + excessHalfDays * HALF_DAY_ABSENCE_RATIO;
+
+  return {
+    normalizedPresentDays,
+    normalizedAbsentDays,
+    cappedHalfDays,
+    excessHalfDays
+  };
+};
+
+const buildUserAttendanceSummary = ({ user, summary, totalRecords, totalHoursWorked, halfDays, lateDays }) => {
+  const { normalizedPresentDays, normalizedAbsentDays } = applyHalfDayConversion({
+    presentDays: summary.presentDays,
+    halfDays,
+    absentDays: summary.absentDays
+  });
+
+  return {
+    userId: user._id,
+    name: user.name,
+    email: user.email,
+    department: user.department,
+    presentDays: Number(normalizedPresentDays.toFixed(2)),
+    absentDays: Number(normalizedAbsentDays.toFixed(2)),
+    halfDays,
+    lateDays,
+    totalHoursWorked: Number(totalHoursWorked.toFixed(2)),
+    totalRecords
+  };
+};
+
+const summariseRecords = (records = []) => {
+  let presentDays = 0;
+  let lateDays = 0;
+  let halfDays = 0;
+  let absentDays = 0;
+  let totalHoursWorked = 0;
+
+  records.forEach((record) => {
+    switch (record.status) {
+      case 'present':
+        presentDays += 1;
+        break;
+      case 'late':
+        presentDays += 1;
+        lateDays += 1;
+        break;
+      case HALF_DAY_STATUS:
+        halfDays += 1;
+        break;
+      default:
+        absentDays += 1;
+    }
+
+    if (record.loginTime && record.logoutTime) {
+      totalHoursWorked +=
+        (new Date(record.logoutTime) - new Date(record.loginTime)) /
+        (1000 * 60 * 60);
+    }
+  });
+
+  return {
+    presentDays,
+    lateDays,
+    halfDays,
+    absentDays,
+    totalHoursWorked
+  };
+};
+
+const fetchAttendanceForRange = async ({ userId, startDate, endDate }) =>
+  Attendance.find({
+    userId,
+    date: {
+      $gte: startDate.toISOString().split('T')[0],
+      $lte: endDate.toISOString().split('T')[0]
+    }
+  })
+    .sort({ date: 1, createdAt: 1 });
+
+const aggregateAttendanceSummary = async (startDate, endDate) => {
+  const users = await User.find({ is_active: true }).select('name email department');
+
+  const summaries = [];
+
+  for (const user of users) {
+    const records = await fetchAttendanceForRange({ userId: user._id, startDate, endDate });
+
+    if (!records.length) {
+      continue;
+    }
+
+    const { presentDays, lateDays, halfDays, absentDays, totalHoursWorked } = summariseRecords(records);
+
+    summaries.push(
+      buildUserAttendanceSummary({
+        user,
+        summary: { presentDays, absentDays },
+        totalRecords: records.length,
+        totalHoursWorked,
+        halfDays,
+        lateDays
+      })
+    );
+  }
+
+  summaries.sort((a, b) => a.name.localeCompare(b.name));
+
+  return summaries;
+};
+
+exports.generateAttendanceSummaryReport = async (req, res) => {
+  try {
+    const {
+      startDate: startDateInput,
+      endDate: endDateInput,
+      department: departmentFilter
+    } = req.query;
+
+    const { startDate, endDate, startDateString, endDateString } = validateDateRange(startDateInput, endDateInput);
+
+    const filter = departmentFilter ? { department: departmentFilter } : {};
+    const users = await User.find({ is_active: true, ...filter }).select('name email department');
+
+    const summaries = [];
+
+    for (const user of users) {
+      const records = await fetchAttendanceForRange({ userId: user._id, startDate, endDate });
+
+      if (!records.length) {
+        continue;
+      }
+
+      const { presentDays, lateDays, halfDays, absentDays, totalHoursWorked } = summariseRecords(records);
+
+      summaries.push(
+        buildUserAttendanceSummary({
+          user,
+          summary: { presentDays, absentDays },
+          totalRecords: records.length,
+          totalHoursWorked,
+          halfDays,
+          lateDays
+        })
+      );
+    }
+
+    res.json({
+      success: true,
+      data: summaries,
+      meta: {
+        startDate: startDateString,
+        endDate: endDateString,
+        departments: departmentFilter ? [departmentFilter] : 'all'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating attendance summary report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate attendance summary report',
+      error: error.message
+    });
+  }
 };
 
 const buildVisitSummary = (visitLocations = []) => {
